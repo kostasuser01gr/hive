@@ -80,7 +80,8 @@ async def example_3_config_file():
     import shutil
 
     shutil.copy(
-        "examples/mcp_servers.json", test_agent_path / "mcp_servers.json"
+        "examples/mcp_servers.json",
+        test_agent_path / "mcp_servers.json"
     )
 
     # Load agent - MCP servers will be auto-discovered
