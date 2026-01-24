@@ -37,7 +37,9 @@ async def example_1_programmatic_registration():
     print(f"\nAvailable tools: {list(tools.keys())}")
 
     # Run the agent with MCP tools available
-    result = await runner.run({"objective": "Search for 'Claude AI' and summarize the top 3 results"})
+    result = await runner.run({
+        "objective": "Search for 'Claude AI' and summarize the top 3 results"
+    })
 
     print(f"\nAgent result: {result}")
 
@@ -77,7 +79,9 @@ async def example_3_config_file():
     # Copy example config (in practice, you'd place this in your agent folder)
     import shutil
 
-    shutil.copy("examples/mcp_servers.json", test_agent_path / "mcp_servers.json")
+    shutil.copy(
+        "examples/mcp_servers.json", test_agent_path / "mcp_servers.json"
+    )
 
     # Load agent - MCP servers will be auto-discovered
     runner = AgentRunner.load(test_agent_path)
