@@ -22,6 +22,7 @@ from .example_tool import register_tools as register_example
 from .web_search_tool import register_tools as register_web_search
 from .web_scrape_tool import register_tools as register_web_scrape
 from .pdf_read_tool import register_tools as register_pdf_read
+from .composio_tools import register_tools as register_composio
 
 # Import file system toolkits
 from .file_system_toolkits.view_file import register_tools as register_view_file
@@ -51,12 +52,12 @@ def register_all_tools(
     """
     # Tools that don't need credentials
     register_example(mcp)
-    register_web_search(mcp)
     register_web_scrape(mcp)
     register_pdf_read(mcp)
 
     # Tools that need credentials (pass credentials if provided)
     register_web_search(mcp, credentials=credentials)
+    register_composio(mcp, credentials=credentials)
 
     # Register file system toolkits
     register_view_file(mcp)
@@ -81,6 +82,15 @@ def register_all_tools(
         "apply_patch",
         "grep_search",
         "execute_command_tool",
+        # Composio tools (LinkedIn + Gmail)
+        "linkedin_create_post",
+        "linkedin_get_profile",
+        "linkedin_search_people",
+        "linkedin_send_message",
+        "gmail_send_email",
+        "gmail_read_emails",
+        "gmail_search_emails",
+        "gmail_create_draft",
     ]
 
 
