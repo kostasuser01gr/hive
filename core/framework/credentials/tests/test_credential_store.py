@@ -12,24 +12,17 @@ Tests cover:
 
 import os
 import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-from pydantic import SecretStr
-
 from core.framework.credentials import (
-    BearerTokenProvider,
     CompositeStorage,
-    CredentialError,
     CredentialKey,
     CredentialKeyNotFoundError,
     CredentialNotFoundError,
     CredentialObject,
-    CredentialProvider,
-    CredentialRefreshError,
-    CredentialStorage,
     CredentialStore,
     CredentialType,
     CredentialUsageSpec,
@@ -39,6 +32,7 @@ from core.framework.credentials import (
     StaticProvider,
     TemplateResolver,
 )
+from pydantic import SecretStr
 
 
 class TestCredentialKey:
@@ -54,13 +48,13 @@ class TestCredentialKey:
 
     def test_key_with_expiration(self):
         """Test key with expiration time."""
-        future = datetime.now(timezone.utc) + timedelta(hours=1)
+        future = datetime.now(UTC) + timedelta(hours=1)
         key = CredentialKey(name="token", value=SecretStr("xxx"), expires_at=future)
         assert not key.is_expired
 
     def test_expired_key(self):
         """Test that expired key is detected."""
-        past = datetime.now(timezone.utc) - timedelta(hours=1)
+        past = datetime.now(UTC) - timedelta(hours=1)
         key = CredentialKey(name="token", value=SecretStr("xxx"), expires_at=past)
         assert key.is_expired
 
@@ -111,13 +105,13 @@ class TestCredentialObject:
     def test_set_key_with_expiration(self):
         """Test setting a key with expiration."""
         cred = CredentialObject(id="test", keys={})
-        expires = datetime.now(timezone.utc) + timedelta(hours=1)
+        expires = datetime.now(UTC) + timedelta(hours=1)
         cred.set_key("token", "xxx", expires_at=expires)
         assert cred.keys["token"].expires_at == expires
 
     def test_needs_refresh(self):
         """Test needs_refresh property."""
-        past = datetime.now(timezone.utc) - timedelta(hours=1)
+        past = datetime.now(UTC) - timedelta(hours=1)
         cred = CredentialObject(
             id="test",
             keys={"token": CredentialKey(name="token", value=SecretStr("xxx"), expires_at=past)},
@@ -594,8 +588,8 @@ class TestCredentialStore:
 
         storage.save(CredentialObject(id="test", keys={"k": CredentialKey(name="k", value=SecretStr("v"))}))
 
-        # First load
-        cred1 = store.get_credential("test")
+        # First load (populates cache)
+        store.get_credential("test")
 
         # Delete from storage
         storage.delete("test")
@@ -646,12 +640,12 @@ class TestOAuth2Module:
         from core.framework.credentials.oauth2 import OAuth2Token
 
         # Not expired
-        future = datetime.now(timezone.utc) + timedelta(hours=1)
+        future = datetime.now(UTC) + timedelta(hours=1)
         token = OAuth2Token(access_token="xxx", expires_at=future)
         assert not token.is_expired
 
         # Expired
-        past = datetime.now(timezone.utc) - timedelta(hours=1)
+        past = datetime.now(UTC) - timedelta(hours=1)
         expired_token = OAuth2Token(access_token="xxx", expires_at=past)
         assert expired_token.is_expired
 

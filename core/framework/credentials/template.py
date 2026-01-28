@@ -17,7 +17,7 @@ Examples:
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING
 
 from .models import CredentialKeyNotFoundError, CredentialNotFoundError
 
@@ -45,7 +45,7 @@ class TemplateResolver:
     # Matches {{credential_id}} or {{credential_id.key_name}}
     TEMPLATE_PATTERN = re.compile(r"\{\{([a-zA-Z0-9_-]+)(?:\.([a-zA-Z0-9_-]+))?\}\}")
 
-    def __init__(self, credential_store: "CredentialStore"):
+    def __init__(self, credential_store: CredentialStore):
         """
         Initialize the template resolver.
 
@@ -104,9 +104,9 @@ class TemplateResolver:
 
     def resolve_headers(
         self,
-        header_templates: Dict[str, str],
+        header_templates: dict[str, str],
         fail_on_missing: bool = True,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         Resolve templates in a headers dictionary.
 
@@ -128,9 +128,9 @@ class TemplateResolver:
 
     def resolve_params(
         self,
-        param_templates: Dict[str, str],
+        param_templates: dict[str, str],
         fail_on_missing: bool = True,
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         Resolve templates in a query parameters dictionary.
 
@@ -155,7 +155,7 @@ class TemplateResolver:
         """
         return bool(self.TEMPLATE_PATTERN.search(text))
 
-    def extract_references(self, text: str) -> List[Tuple[str, Optional[str]]]:
+    def extract_references(self, text: str) -> list[tuple[str, str | None]]:
         """
         Extract all credential references from text.
 
@@ -172,7 +172,7 @@ class TemplateResolver:
         """
         return [(match.group(1), match.group(2)) for match in self.TEMPLATE_PATTERN.finditer(text)]
 
-    def validate_references(self, text: str) -> List[str]:
+    def validate_references(self, text: str) -> list[str]:
         """
         Validate all credential references in text without resolving.
 
@@ -201,7 +201,7 @@ class TemplateResolver:
 
         return errors
 
-    def get_required_credentials(self, text: str) -> List[str]:
+    def get_required_credentials(self, text: str) -> list[str]:
         """
         Get list of credential IDs required by a template string.
 
