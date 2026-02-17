@@ -65,6 +65,7 @@ from .ssl_tls_scanner import register_tools as register_ssl_tls_scanner
 from .subdomain_enumerator import register_tools as register_subdomain_enumerator
 from .tech_stack_detector import register_tools as register_tech_stack_detector
 from .telegram_tool import register_tools as register_telegram
+from .twitter_tool import register_tools as register_twitter
 from .time_tool import register_tools as register_time
 from .vision_tool import register_tools as register_vision
 from .web_scrape_tool import register_tools as register_web_scrape
@@ -111,6 +112,7 @@ def register_all_tools(
     register_slack(mcp, credentials=credentials)
     register_razorpay(mcp, credentials=credentials)
     register_telegram(mcp, credentials=credentials)
+    register_twitter(mcp, credentials=credentials)
     register_vision(mcp, credentials=credentials)
     register_google_maps(mcp, credentials=credentials)
     register_bigquery(mcp, credentials=credentials)
@@ -303,6 +305,22 @@ def register_all_tools(
         "vision_safe_search",
         "telegram_send_message",
         "telegram_send_document",
+        # Twitter tools
+        "twitter_post_tweet",
+        "twitter_delete_tweet",
+        "twitter_get_tweet",
+        "twitter_search_tweets",
+        "twitter_like_tweet",
+        "twitter_unlike_tweet",
+        "twitter_retweet",
+        "twitter_undo_retweet",
+        "twitter_get_user",
+        "twitter_follow_user",
+        "twitter_unfollow_user",
+        "twitter_get_followers",
+        "twitter_get_following",
+        "twitter_get_user_tweets",
+        "twitter_get_mentions",
         "maps_geocode",
         "maps_reverse_geocode",
         "maps_directions",
