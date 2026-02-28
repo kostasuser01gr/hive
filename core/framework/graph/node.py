@@ -200,12 +200,8 @@ class NodeSpec(BaseModel):
     )
 
     # For LLM nodes
-    system_prompt: str | None = Field(
-        default=None, description="System prompt for LLM nodes"
-    )
-    tools: list[str] = Field(
-        default_factory=list, description="Tool names this node can use"
-    )
+    system_prompt: str | None = Field(default=None, description="System prompt for LLM nodes")
+    tools: list[str] = Field(default_factory=list, description="Tool names this node can use")
     model: str | None = Field(
         default=None, description="Specific model to use (defaults to graph default)"
     )
@@ -218,9 +214,7 @@ class NodeSpec(BaseModel):
 
     # Retry behavior
     max_retries: int = Field(default=3)
-    retry_on: list[str] = Field(
-        default_factory=list, description="Error types to retry on"
-    )
+    retry_on: list[str] = Field(default_factory=list, description="Error types to retry on")
 
     # Visit limits (for feedback/callback edges)
     max_node_visits: int = Field(
@@ -509,9 +503,7 @@ class NodeContext:
     # Continuous conversation mode
     continuous_mode: bool = False  # True when graph has conversation_mode="continuous"
     inherited_conversation: Any = None  # NodeConversation | None (from prior node)
-    cumulative_output_keys: list[str] = field(
-        default_factory=list
-    )  # All output keys from path
+    cumulative_output_keys: list[str] = field(default_factory=list)  # All output keys from path
 
     # Connected accounts prompt (injected from runner)
     accounts_prompt: str = ""

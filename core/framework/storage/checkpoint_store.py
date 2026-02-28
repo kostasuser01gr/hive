@@ -95,9 +95,7 @@ class CheckpointStore:
                 return None
 
             try:
-                return Checkpoint.model_validate_json(
-                    checkpoint_path.read_text(encoding="utf-8")
-                )
+                return Checkpoint.model_validate_json(checkpoint_path.read_text(encoding="utf-8"))
             except Exception as e:
                 logger.error(f"Failed to load checkpoint {checkpoint_id}: {e}")
                 return None
@@ -157,9 +155,7 @@ class CheckpointStore:
 
         # Apply filters
         if checkpoint_type:
-            checkpoints = [
-                cp for cp in checkpoints if cp.checkpoint_type == checkpoint_type
-            ]
+            checkpoints = [cp for cp in checkpoints if cp.checkpoint_type == checkpoint_type]
 
         if is_clean is not None:
             checkpoints = [cp for cp in checkpoints if cp.is_clean == is_clean]
@@ -239,9 +235,7 @@ class CheckpointStore:
                 deleted_count += 1
 
         if deleted_count > 0:
-            logger.info(
-                f"Pruned {deleted_count} checkpoints older than {max_age_days} days"
-            )
+            logger.info(f"Pruned {deleted_count} checkpoints older than {max_age_days} days")
 
         return deleted_count
 
@@ -316,9 +310,7 @@ class CheckpointStore:
             return
 
         # Remove checkpoint from index
-        index.checkpoints = [
-            cp for cp in index.checkpoints if cp.checkpoint_id != checkpoint_id
-        ]
+        index.checkpoints = [cp for cp in index.checkpoints if cp.checkpoint_id != checkpoint_id]
 
         # Update totals
         index.total_checkpoints = len(index.checkpoints)
