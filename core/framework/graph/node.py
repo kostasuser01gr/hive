@@ -171,10 +171,12 @@ class NodeSpec(BaseModel):
 
     # Data flow
     input_keys: list[str] = Field(
-        default_factory=list, description="Keys this node reads from shared memory or input"
+        default_factory=list,
+        description="Keys this node reads from shared memory or input",
     )
     output_keys: list[str] = Field(
-        default_factory=list, description="Keys this node writes to shared memory or output"
+        default_factory=list,
+        description="Keys this node writes to shared memory or output",
     )
     nullable_output_keys: list[str] = Field(
         default_factory=list,
@@ -198,20 +200,27 @@ class NodeSpec(BaseModel):
     )
 
     # For LLM nodes
-    system_prompt: str | None = Field(default=None, description="System prompt for LLM nodes")
-    tools: list[str] = Field(default_factory=list, description="Tool names this node can use")
+    system_prompt: str | None = Field(
+        default=None, description="System prompt for LLM nodes"
+    )
+    tools: list[str] = Field(
+        default_factory=list, description="Tool names this node can use"
+    )
     model: str | None = Field(
         default=None, description="Specific model to use (defaults to graph default)"
     )
 
     # For router nodes
     routes: dict[str, str] = Field(
-        default_factory=dict, description="Condition -> target_node_id mapping for routers"
+        default_factory=dict,
+        description="Condition -> target_node_id mapping for routers",
     )
 
     # Retry behavior
     max_retries: int = Field(default=3)
-    retry_on: list[str] = Field(default_factory=list, description="Error types to retry on")
+    retry_on: list[str] = Field(
+        default_factory=list, description="Error types to retry on"
+    )
 
     # Visit limits (for feedback/callback edges)
     max_node_visits: int = Field(
@@ -500,7 +509,9 @@ class NodeContext:
     # Continuous conversation mode
     continuous_mode: bool = False  # True when graph has conversation_mode="continuous"
     inherited_conversation: Any = None  # NodeConversation | None (from prior node)
-    cumulative_output_keys: list[str] = field(default_factory=list)  # All output keys from path
+    cumulative_output_keys: list[str] = field(
+        default_factory=list
+    )  # All output keys from path
 
     # Connected accounts prompt (injected from runner)
     accounts_prompt: str = ""
@@ -556,7 +567,6 @@ class NodeResult:
         Generate a human-readable summary of this node's execution and output.
 
         This is like toString() - it describes what the node produced in its current state.
-        Uses Haiku to intelligently summarize complex outputs.
         """
         if not self.success:
             return f"❌ Failed: {self.error}"
@@ -564,59 +574,18 @@ class NodeResult:
         if not self.output:
             return "✓ Completed (no output)"
 
-        # Use Haiku to generate intelligent summary
-        import os
+        # Simple key-value listing
+        parts = [f"✓ Completed with {len(self.output)} outputs:"]
+        for key, value in list(self.output.items())[:5]:  # Limit to 5 keys
+            value_str = str(value)[:100]
+            if len(str(value)) > 100:
+                value_str += "..."
+            parts.append(f"  • {key}: {value_str}")
 
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if len(self.output) > 5:
+            parts.append(f"  ... and {len(self.output) - 5} more")
 
-        if not api_key:
-            # Fallback: simple key-value listing
-            parts = [f"✓ Completed with {len(self.output)} outputs:"]
-            for key, value in list(self.output.items())[:5]:  # Limit to 5 keys
-                value_str = str(value)[:100]
-                if len(str(value)) > 100:
-                    value_str += "..."
-                parts.append(f"  • {key}: {value_str}")
-            return "\n".join(parts)
-
-        # Use Haiku to generate intelligent summary
-        try:
-            import json
-
-            import anthropic
-
-            node_context = ""
-            if node_spec:
-                node_context = f"\nNode: {node_spec.name}\nPurpose: {node_spec.description}"
-
-            output_json = json.dumps(self.output, indent=2, default=str)[:2000]
-            prompt = (
-                f"Generate a 1-2 sentence human-readable summary of "
-                f"what this node produced.{node_context}\n\n"
-                f"Node output:\n{output_json}\n\n"
-                "Provide a concise, clear summary that a human can quickly "
-                "understand. Focus on the key information produced."
-            )
-
-            client = anthropic.Anthropic(api_key=api_key)
-            message = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=200,
-                messages=[{"role": "user", "content": prompt}],
-            )
-
-            summary = message.content[0].text.strip()
-            return f"✓ {summary}"
-
-        except Exception:
-            # Fallback on error
-            parts = [f"✓ Completed with {len(self.output)} outputs:"]
-            for key, value in list(self.output.items())[:3]:
-                value_str = str(value)[:80]
-                if len(str(value)) > 80:
-                    value_str += "..."
-                parts.append(f"  • {key}: {value_str}")
-            return "\n".join(parts)
+        return "\n".join(parts)
 
 
 class NodeProtocol(ABC):
