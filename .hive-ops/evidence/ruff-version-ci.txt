@@ -1,0 +1,4 @@
+.github/workflows/ci.yml:          uv run --project core ruff check core/
+.github/workflows/ci.yml:          uv run --project core ruff check tools/
+.github/workflows/ci.yml:          uv run --project core ruff format --check core/
+.github/workflows/ci.yml:          uv run --project core ruff format --check tools/
