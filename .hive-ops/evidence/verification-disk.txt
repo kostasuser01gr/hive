@@ -1,0 +1,5 @@
+        print(f"\033[0;31mToken exchange failed: {exc}\033[0m", file=sys.stderr)
+        return None
+--
+        print("\033[0;31mToken response missing required fields\033[0m", file=sys.stderr)
+        return None
