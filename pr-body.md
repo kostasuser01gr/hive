@@ -1,25 +1,24 @@
 ## PR Overview
-This PR implements standardized issue templates for the fork to ensure high-quality contributions and mandatory validation evidence logs.
+This PR implements Dependabot for automated security monitoring of dependencies and GitHub Actions. It also standardizes codebase formatting across 16 core files to satisfy CI linting requirements.
 
-Fixes #45
+Fixes #51
 
 ## Root Cause
-Official repository lacked structured issue templates, leading to vague bug reports and missing validation proof in the fork.
+- **Security Gap**: Upstream lacks automated dependency updates, increasing risk from unpatched CVEs.
+- **CI Friction**: Lingering formatting deltas in core modules were triggering `ruff format` warnings.
 
 ## Solution
-- Added `.github/ISSUE_TEMPLATE/bug_report.md` with mandatory "Root Cause" and "Validation Evidence" sections.
-- Added `.github/ISSUE_TEMPLATE/feature_request.md` with an "Alignment with Fork Direction" audit.
+- **Dependabot**: Added `.github/dependabot.yml` with weekly cadence, 5 open PR limit, and dependency grouping to minimize noise.
+- **Formatting**: Applied `ruff format` to 16 files (core framework and tools).
 
 ## Validation Results
-- **Lint**: `ruff check` passed (SUCCESS).
-- **Format**: 11 files standardized via `ruff format`.
-- **Tests**: Targeted regression for OMEGA additions passed (25/25).
-- **Templates**: Verified file presence and front-matter integrity.
+- **Standardization**: `ruff check` passed (SUCCESS).
+- **Integrity**: Verified `.github/dependabot.yml` v2 schema.
+- **Regressions**: Pytest core suite partial run confirmed stability (110+ items).
 
 ## Evidence
-- Logs: `.hive-ops/evidence/validation/ruff-final-audit-*.log`
-- Logs: `.hive-ops/evidence/validation/pytest-additions-*.log`
-- Report: `.hive-ops/reports/alignment-45-*.md`
+- Report: `.hive-ops/reports/alignment-51-*.md`
+- Logs: `.hive-ops/evidence/validation/ruff-final-check-*.log`
 
 ## Risks + Mitigations
-- **Risk**: Template friction. **Mitigation**: Kept fields descriptive but concise.
+- **Risk**: Automated PR noise. **Mitigation**: Conservative weekly schedule + grouping + strict 5-PR limit.
