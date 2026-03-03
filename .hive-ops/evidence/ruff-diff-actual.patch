@@ -1,0 +1,1664 @@
+diff --git a/core/codex_oauth.py b/core/codex_oauth.py
+index 6a7e375..e03875f 100644
+--- a/core/codex_oauth.py
++++ b/core/codex_oauth.py
+@@ -101,9 +101,7 @@ def exchange_code_for_tokens(code: str, verifier: str) -> dict | None:
+         return None
+ 
+     if not token_data.get("access_token") or not token_data.get("refresh_token"):
+-        print(
+-            "\033[0;31mToken response missing required fields\033[0m", file=sys.stderr
+-        )
++        print("\033[0;31mToken response missing required fields\033[0m", file=sys.stderr)
+         return None
+ 
+     return token_data
+@@ -167,9 +165,7 @@ def open_browser(url: str) -> bool:
+         if system == "Darwin":
+             subprocess.Popen(["open", url], stdout=devnull, stderr=devnull)
+         elif system == "Windows":
+-            subprocess.Popen(
+-                ["cmd", "/c", "start", url], stdout=devnull, stderr=devnull
+-            )
++            subprocess.Popen(["cmd", "/c", "start", url], stdout=devnull, stderr=devnull)
+         else:
+             subprocess.Popen(["xdg-open", url], stdout=devnull, stderr=devnull)
+         return True
+@@ -230,9 +226,7 @@ def wait_for_callback(state: str, timeout_secs: int = 120) -> str | None:
+     server.timeout = 1
+ 
+     deadline = time.time() + timeout_secs
+-    server_thread = threading.Thread(
+-        target=_serve_until_done, args=(server, deadline, state)
+-    )
++    server_thread = threading.Thread(target=_serve_until_done, args=(server, deadline, state))
+     server_thread.daemon = True
+     server_thread.start()
+     server_thread.join(timeout=timeout_secs + 2)
+@@ -244,15 +238,10 @@ def wait_for_callback(state: str, timeout_secs: int = 120) -> str | None:
+     return None
+ 
+ 
+-def _serve_until_done(
+-    server: http.server.HTTPServer, deadline: float, state: str
+-) -> None:
++def _serve_until_done(server: http.server.HTTPServer, deadline: float, state: str) -> None:
+     while time.time() < deadline:
+         server.handle_request()
+-        if (
+-            OAuthCallbackHandler.auth_code
+-            and OAuthCallbackHandler.received_state == state
+-        ):
++        if OAuthCallbackHandler.auth_code and OAuthCallbackHandler.received_state == state:
+             return
+ 
+ 
+@@ -300,9 +289,7 @@ def main() -> int:
+         result = sock.connect_ex(("127.0.0.1", CALLBACK_PORT))
+         sock.close()
+         if result == 0:
+-            print(
+-                f"\033[1;33mPort {CALLBACK_PORT} is in use. Using manual paste mode.\033[0m"
+-            )
++            print(f"\033[1;33mPort {CALLBACK_PORT} is in use. Using manual paste mode.\033[0m")
+             server_available = False
+     except Exception:
+         server_available = True
+@@ -323,9 +310,7 @@ def main() -> int:
+ 
+     if server_available:
+         print("  Waiting for authentication (up to 2 minutes)...")
+-        print(
+-            "  \033[2mOr paste the redirect URL below if the callback didn't work:\033[0m"
+-        )
++        print("  \033[2mOr paste the redirect URL below if the callback didn't work:\033[0m")
+         print()
+ 
+         # Start callback server in background
+@@ -388,9 +373,7 @@ def run_server() -> None:
+     # Extract account_id from JWT
+     account_id = get_account_id(token_data["access_token"])
+     if not account_id:
+-        print(
+-            "\033[0;31mFailed to extract account ID from token.\033[0m", file=sys.stderr
+-        )
++        print("\033[0;31mFailed to extract account ID from token.\033[0m", file=sys.stderr)
+         return 1
+ 
+     # Save credentials
+diff --git a/core/framework/graph/edge.py b/core/framework/graph/edge.py
+index 753b818..2e04329 100644
+--- a/core/framework/graph/edge.py
++++ b/core/framework/graph/edge.py
+@@ -97,9 +97,7 @@ class EdgeSpec(BaseModel):
+     )
+ 
+     # Priority for multiple outgoing edges
+-    priority: int = Field(
+-        default=0, description="Higher priority edges are evaluated first"
+-    )
++    priority: int = Field(default=0, description="Higher priority edges are evaluated first")
+ 
+     # Metadata
+     description: str = ""
+@@ -202,9 +200,7 @@ def _evaluate_condition(
+             )
+             return result
+         except Exception as e:
+-            logger.warning(
+-                f"      ⚠ Condition evaluation failed: {self.condition_expr}"
+-            )
++            logger.warning(f"      ⚠ Condition evaluation failed: {self.condition_expr}")
+             logger.warning(f"         Error: {e}")
+             logger.warning(f"         Available context keys: {list(context.keys())}")
+             return False
+@@ -267,9 +263,7 @@ async def _llm_decide(
+                 reasoning = data.get("reasoning", "")
+ 
+                 # Log the decision (using basic print for now)
+-                logger.info(
+-                    f"      🤔 LLM routing decision: {'PROCEED' if proceed else 'SKIP'}"
+-                )
++                logger.info(f"      🤔 LLM routing decision: {'PROCEED' if proceed else 'SKIP'}")
+                 logger.info(f"         Reason: {reasoning}")
+ 
+                 return proceed
+@@ -343,9 +337,7 @@ class AsyncEntryPointSpec(BaseModel):
+         default="shared",
+         description="State isolation: isolated, shared, or synchronized",
+     )
+-    priority: int = Field(
+-        default=0, description="Execution priority (higher = more priority)"
+-    )
++    priority: int = Field(default=0, description="Execution priority (higher = more priority)")
+     max_concurrent: int = Field(
+         default=10, description="Maximum concurrent executions for this entry point"
+     )
+@@ -427,9 +419,7 @@ class GraphSpec(BaseModel):
+     nodes: list[Any] = Field(  # NodeSpec, but avoiding circular import
+         default_factory=list, description="All node specifications"
+     )
+-    edges: list[EdgeSpec] = Field(
+-        default_factory=list, description="All edge specifications"
+-    )
++    edges: list[EdgeSpec] = Field(default_factory=list, description="All edge specifications")
+ 
+     # Shared memory keys
+     memory_keys: list[str] = Field(
+@@ -446,9 +436,7 @@ class GraphSpec(BaseModel):
+     cleanup_llm_model: str | None = None
+ 
+     # Execution limits
+-    max_steps: int = Field(
+-        default=100, description="Maximum node executions before timeout"
+-    )
++    max_steps: int = Field(default=100, description="Maximum node executions before timeout")
+     max_retries_per_node: int = 3
+ 
+     # EventLoopNode configuration (from configure_loop)
+@@ -572,9 +560,7 @@ def detect_fan_out_nodes(self) -> dict[str, list[str]]:
+         for node in self.nodes:
+             outgoing = self.get_outgoing_edges(node.id)
+             # Fan-out: multiple edges with ON_SUCCESS condition
+-            success_edges = [
+-                e for e in outgoing if e.condition == EdgeCondition.ON_SUCCESS
+-            ]
++            success_edges = [e for e in outgoing if e.condition == EdgeCondition.ON_SUCCESS]
+             if len(success_edges) > 1:
+                 fan_outs[node.id] = [e.target for e in success_edges]
+         return fan_outs
+@@ -675,13 +661,9 @@ def validate(self) -> list[str]:
+         # Check edge references
+         for edge in self.edges:
+             if not self.get_node(edge.source):
+-                errors.append(
+-                    f"Edge '{edge.id}' references missing source '{edge.source}'"
+-                )
++                errors.append(f"Edge '{edge.id}' references missing source '{edge.source}'")
+             if not self.get_node(edge.target):
+-                errors.append(
+-                    f"Edge '{edge.id}' references missing target '{edge.target}'"
+-                )
++                errors.append(f"Edge '{edge.id}' references missing target '{edge.target}'")
+ 
+         # Check for unreachable nodes
+         # Start with main entry node and all entry points (for pause/resume architecture)
+@@ -726,8 +708,7 @@ def validate(self) -> list[str]:
+             client_facing_targets = [
+                 t
+                 for t in targets
+-                if self.get_node(t)
+-                and getattr(self.get_node(t), "client_facing", False)
++                if self.get_node(t) and getattr(self.get_node(t), "client_facing", False)
+             ]
+             if len(client_facing_targets) > 1:
+                 errors.append(
+@@ -740,8 +721,7 @@ def validate(self) -> list[str]:
+             event_loop_targets = [
+                 t
+                 for t in targets
+-                if self.get_node(t)
+-                and getattr(self.get_node(t), "node_type", "") == "event_loop"
++                if self.get_node(t) and getattr(self.get_node(t), "node_type", "") == "event_loop"
+             ]
+             if len(event_loop_targets) > 1:
+                 seen_keys: dict[str, str] = {}
+diff --git a/core/framework/graph/event_loop_node.py b/core/framework/graph/event_loop_node.py
+index 39aef2f..40004ba 100644
+--- a/core/framework/graph/event_loop_node.py
++++ b/core/framework/graph/event_loop_node.py
+@@ -160,9 +160,7 @@ def to_dict(self) -> dict[str, Any]:
+ 
+     def has_all_keys(self, required: list[str]) -> bool:
+         """Check if all required keys have been set (non-None)."""
+-        return all(
+-            key in self.values and self.values[key] is not None for key in required
+-        )
++        return all(key in self.values and self.values[key] is not None for key in required)
+ 
+     @classmethod
+     async def restore(cls, store: ConversationStore) -> OutputAccumulator:
+@@ -216,9 +214,7 @@ def __init__(
+         event_bus: EventBus | None = None,
+         judge: JudgeProtocol | None = None,
+         config: LoopConfig | None = None,
+-        tool_executor: (
+-            Callable[[ToolUse], ToolResult | Awaitable[ToolResult]] | None
+-        ) = None,
++        tool_executor: (Callable[[ToolUse], ToolResult | Awaitable[ToolResult]] | None) = None,
+         conversation_store: ConversationStore | None = None,
+     ) -> None:
+         self._event_bus = event_bus
+@@ -424,15 +420,11 @@ async def execute(self, ctx: NodeContext) -> NodeResult:
+             and stream_id not in ("queen", "judge")
+         ):
+             self._action_plan_emitted.add(node_id)
+-            asyncio.create_task(
+-                self._generate_action_plan(ctx, stream_id, node_id, execution_id)
+-            )
++            asyncio.create_task(self._generate_action_plan(ctx, stream_id, node_id, execution_id))
+ 
+         # 5. Stall / doom loop detection state (restored from cursor if resuming)
+         recent_responses: list[str] = _restored_recent_responses
+-        recent_tool_fingerprints: list[list[tuple[str, str]]] = (
+-            _restored_tool_fingerprints
+-        )
++        recent_tool_fingerprints: list[list[tuple[str, str]]] = _restored_tool_fingerprints
+ 
+         # 6. Main loop
+         for iteration in range(start_iteration, self._config.max_iterations):
+@@ -746,8 +738,7 @@ async def execute(self, ctx: NodeContext) -> NodeResult:
+             mcp_tool_calls = [
+                 tc
+                 for tc in logged_tool_calls
+-                if tc.get("tool_name")
+-                not in ("set_output", "ask_user", "escalate_to_coder")
++                if tc.get("tool_name") not in ("set_output", "ask_user", "escalate_to_coder")
+                 and not tc.get("is_error")
+             ]
+             if mcp_tool_calls:
+@@ -1002,9 +993,7 @@ async def execute(self, ctx: NodeContext) -> NodeResult:
+                 or not real_tool_results  # no real tool calls = natural stop
+             )
+ 
+-            logger.info(
+-                "[%s] iter=%d: 6i should_judge=%s", node_id, iteration, should_judge
+-            )
++            logger.info("[%s] iter=%d: 6i should_judge=%s", node_id, iteration, should_judge)
+             if not should_judge:
+                 # Gap C: unjudged iteration — log as CONTINUE
+                 _continue_count += 1
+@@ -1082,9 +1071,7 @@ async def execute(self, ctx: NodeContext) -> NodeResult:
+                             node_type="event_loop",
+                             step_index=iteration,
+                             verdict="RETRY",
+-                            verdict_feedback=(
+-                                f"Judge accepted but missing output keys: {missing}"
+-                            ),
++                            verdict_feedback=(f"Judge accepted but missing output keys: {missing}"),
+                             tool_calls=logged_tool_calls,
+                             llm_text=assistant_text,
+                             input_tokens=turn_tokens.get("input", 0),
+@@ -1098,9 +1085,7 @@ async def execute(self, ctx: NodeContext) -> NodeResult:
+                 for key, value in accumulator.to_dict().items():
+                     ctx.memory.write(key, value, validate=False)
+ 
+-                await self._publish_loop_completed(
+-                    stream_id, node_id, iteration + 1, execution_id
+-                )
++                await self._publish_loop_completed(stream_id, node_id, iteration + 1, execution_id)
+                 latency_ms = int((time.time() - start_time) * 1000)
+                 _accept_count += 1
+                 if ctx.runtime_logger:
+@@ -1143,9 +1128,7 @@ async def execute(self, ctx: NodeContext) -> NodeResult:
+ 
+             elif verdict.action == "ESCALATE":
+                 # Exit point 6: Judge ESCALATE — log step + log_node_complete
+-                await self._publish_loop_completed(
+-                    stream_id, node_id, iteration + 1, execution_id
+-                )
++                await self._publish_loop_completed(stream_id, node_id, iteration + 1, execution_id)
+                 latency_ms = int((time.time() - start_time) * 1000)
+                 _escalate_count += 1
+                 if ctx.runtime_logger:
+@@ -1205,9 +1188,7 @@ async def execute(self, ctx: NodeContext) -> NodeResult:
+                         latency_ms=iter_latency_ms,
+                     )
+                 if verdict.feedback:
+-                    await conversation.add_user_message(
+-                        f"[Judge feedback]: {verdict.feedback}"
+-                    )
++                    await conversation.add_user_message(f"[Judge feedback]: {verdict.feedback}")
+                 continue
+ 
+         # 7. Max iterations exhausted
+@@ -1235,18 +1216,14 @@ async def execute(self, ctx: NodeContext) -> NodeResult:
+             )
+         return NodeResult(
+             success=False,
+-            error=(
+-                f"Max iterations ({self._config.max_iterations}) reached without acceptance"
+-            ),
++            error=(f"Max iterations ({self._config.max_iterations}) reached without acceptance"),
+             output=accumulator.to_dict(),
+             tokens_used=total_input_tokens + total_output_tokens,
+             latency_ms=latency_ms,
+             conversation=conversation if _is_continuous else None,
+         )
+ 
+-    async def inject_event(
+-        self, content: str, *, is_client_input: bool = False
+-    ) -> None:
++    async def inject_event(self, content: str, *, is_client_input: bool = False) -> None:
+         """Inject an external event or user input into the running loop.
+ 
+         The content becomes a user message prepended to the next iteration.
+@@ -1390,9 +1367,7 @@ async def _run_single_turn(
+                     "[%s] Messages end with assistant — injecting continuation prompt",
+                     node_id,
+                 )
+-                await conversation.add_user_message(
+-                    "[Continue working on your current task.]"
+-                )
++                await conversation.add_user_message("[Continue working on your current task.]")
+                 messages = conversation.to_llm_messages()
+ 
+             accumulated_text = ""
+@@ -1519,8 +1494,7 @@ async def _do_stream(
+             limit_hit = False
+             executed_in_batch = 0
+             hard_limit = int(
+-                self._config.max_tool_calls_per_turn
+-                * (1 + self._config.tool_call_overflow_margin)
++                self._config.max_tool_calls_per_turn * (1 + self._config.tool_call_overflow_margin)
+             )
+ 
+             # Phase 1: triage — handle framework tools immediately,
+@@ -1552,9 +1526,7 @@ async def _do_stream(
+ 
+                 if tc.tool_name == "set_output":
+                     # --- Framework-level set_output handling ---
+-                    result = self._handle_set_output(
+-                        tc.tool_input, ctx.node_spec.output_keys
+-                    )
++                    result = self._handle_set_output(tc.tool_input, ctx.node_spec.output_keys)
+                     result = ToolResult(
+                         tool_use_id=tc.tool_use_id,
+                         content=result.content,
+@@ -1576,9 +1548,7 @@ async def _do_stream(
+                         await accumulator.set(key, value)
+                         self._record_learning(key, value)
+                         outputs_set_this_turn.append(key)
+-                        await self._publish_output_key_set(
+-                            stream_id, node_id, key, execution_id
+-                        )
++                        await self._publish_output_key_set(stream_id, node_id, key, execution_id)
+                     logged_tool_calls.append(
+                         {
+                             "tool_use_id": tc.tool_use_id,
+@@ -1673,9 +1643,7 @@ async def _do_stream(
+                         )
+                     else:
+                         result = raw
+-                    results_by_id[tc.tool_use_id] = self._truncate_tool_result(
+-                        result, tc.tool_name
+-                    )
++                    results_by_id[tc.tool_use_id] = self._truncate_tool_result(result, tc.tool_name)
+ 
+             # Phase 3: record results into conversation in original order,
+             # build logged/real lists, and publish completed events.
+@@ -2139,8 +2107,7 @@ def _summarize_input(name: str, args: dict) -> str:
+             parts.append("OUTPUTS SET: " + ", ".join(unique))
+         if errors:
+             parts.append(
+-                "ERRORS (do NOT retry these):\n"
+-                + "\n".join(f"  - {e}" for e in errors[:10])
++                "ERRORS (do NOT retry these):\n" + "\n".join(f"  - {e}" for e in errors[:10])
+             )
+         return "\n\n".join(parts)
+ 
+@@ -2312,9 +2279,7 @@ def _record_learning(self, key: str, value: Any) -> None:
+             return
+         try:
+             adapt_path = Path(self._config.spillover_dir) / "adapt.md"
+-            content = (
+-                adapt_path.read_text(encoding="utf-8") if adapt_path.exists() else ""
+-            )
++            content = adapt_path.read_text(encoding="utf-8") if adapt_path.exists() else ""
+ 
+             if "## Outputs" not in content:
+                 content += "\n\n## Outputs\n"
+@@ -2589,18 +2554,14 @@ async def _compact_tiered(
+                     mid_ratio * 100,
+                 )
+                 summary = self._build_emergency_summary(ctx, accumulator, conversation)
+-                await conversation.compact(
+-                    summary, keep_recent=keep, phase_graduated=_phase_grad
+-                )
++                await conversation.compact(summary, keep_recent=keep, phase_graduated=_phase_grad)
+         else:
+             # Fallback: LLM-based summary (no spillover dir available)
+             if level == "emergency":
+                 summary = self._build_emergency_summary(ctx, accumulator, conversation)
+             else:
+                 summary = await self._generate_compaction_summary(ctx, conversation)
+-            await conversation.compact(
+-                summary, keep_recent=keep, phase_graduated=_phase_grad
+-            )
++            await conversation.compact(summary, keep_recent=keep, phase_graduated=_phase_grad)
+ 
+         new_ratio = conversation.usage_ratio()
+         logger.info(
+@@ -2763,14 +2724,10 @@ def _build_emergency_summary(
+                             parts.append(f"AGENT MEMORY (adapt.md):\n{adapt_text}")
+ 
+                     all_files = sorted(
+-                        f.name
+-                        for f in data_dir.iterdir()
+-                        if f.is_file() and f.name != "adapt.md"
++                        f.name for f in data_dir.iterdir() if f.is_file() and f.name != "adapt.md"
+                     )
+                     # Separate conversation history files from regular data files
+-                    conv_files = [
+-                        f for f in all_files if re.match(r"conversation_\d+\.md$", f)
+-                    ]
++                    conv_files = [f for f in all_files if re.match(r"conversation_\d+\.md$", f)]
+                     data_files = [f for f in all_files if f not in conv_files]
+ 
+                     if conv_files:
+@@ -2781,9 +2738,7 @@ def _build_emergency_summary(
+                         )
+                     if data_files:
+                         file_list = "\n".join(f"  - {f}" for f in data_files[:30])
+-                        parts.append(
+-                            "DATA FILES (use load_data to read):\n" + file_list
+-                        )
++                        parts.append("DATA FILES (use load_data to read):\n" + file_list)
+                     if not all_files:
+                         parts.append(
+                             "NOTE: Large tool results may have been saved to files. "
+@@ -2853,12 +2808,11 @@ async def _restore(
+         start_iteration = cursor.get("iteration", 0) + 1 if cursor else 0
+ 
+         # Restore stall/doom-loop detection state
+-        recent_responses: list[str] = (
+-            cursor.get("recent_responses", []) if cursor else []
+-        )
++        recent_responses: list[str] = cursor.get("recent_responses", []) if cursor else []
+         raw_fps = cursor.get("recent_tool_fingerprints", []) if cursor else []
+         recent_tool_fingerprints: list[list[tuple[str, str]]] = [
+-            [tuple(pair) for pair in fps] for fps in raw_fps  # type: ignore[misc]
++            [tuple(pair) for pair in fps]
++            for fps in raw_fps  # type: ignore[misc]
+         ]
+ 
+         logger.info(
+@@ -2930,9 +2884,7 @@ async def _drain_injection_queue(self, conversation: NodeConversation) -> int:
+                 if is_client_input:
+                     sanitized = content
+                     if limit > 0 and len(content) > limit:
+-                        sanitized = (
+-                            content[:limit] + f"\n\n[Input truncated to {limit} chars]"
+-                        )
++                        sanitized = content[:limit] + f"\n\n[Input truncated to {limit} chars]"
+ 
+                     # Wrap in <user_input> tags to help LLM distinguish data from instructions
+                     wrapped = f"<user_input>\n{sanitized}\n</user_input>"
+@@ -2959,12 +2911,8 @@ async def _check_pause(
+         """
+         # Check executor-level pause event (for /pause command, Ctrl+Z)
+         if ctx.pause_event and ctx.pause_event.is_set():
+-            completed = (
+-                iteration  # 0-indexed: iteration=3 means 3 iterations completed (0,1,2)
+-            )
+-            logger.info(
+-                f"⏸ Pausing after {completed} iteration(s) completed (executor-level)"
+-            )
++            completed = iteration  # 0-indexed: iteration=3 means 3 iterations completed (0,1,2)
++            logger.info(f"⏸ Pausing after {completed} iteration(s) completed (executor-level)")
+             return True
+ 
+         # Check context-level pause flags (legacy/alternative methods)
+@@ -2976,9 +2924,7 @@ async def _check_pause(
+                 pause_requested = False
+         if pause_requested:
+             completed = iteration
+-            logger.info(
+-                f"⏸ Pausing after {completed} iteration(s) completed (context-level)"
+-            )
++            logger.info(f"⏸ Pausing after {completed} iteration(s) completed (context-level)")
+             return True
+ 
+         return False
+@@ -3043,9 +2989,7 @@ async def _generate_action_plan(
+                     execution_id=execution_id,
+                 )
+         except Exception as e:
+-            logger.warning(
+-                "Action plan generation failed for node '%s': %s", node_id, e
+-            )
++            logger.warning("Action plan generation failed for node '%s': %s", node_id, e)
+ 
+     async def _publish_iteration(
+         self, stream_id: str, node_id: str, iteration: int, execution_id: str = ""
+@@ -3092,9 +3036,7 @@ async def _publish_loop_completed(
+                 execution_id=execution_id,
+             )
+ 
+-    async def _publish_stalled(
+-        self, stream_id: str, node_id: str, execution_id: str = ""
+-    ) -> None:
++    async def _publish_stalled(self, stream_id: str, node_id: str, execution_id: str = "") -> None:
+         if self._event_bus:
+             await self._event_bus.emit_node_stalled(
+                 stream_id=stream_id,
+diff --git a/core/framework/graph/output_cleaner.py b/core/framework/graph/output_cleaner.py
+index 6adfb02..ea76c34 100644
+--- a/core/framework/graph/output_cleaner.py
++++ b/core/framework/graph/output_cleaner.py
+@@ -123,14 +123,10 @@ def __init__(self, config: CleansingConfig, llm_provider=None):
+                     )
+                     logger.info(f"✓ Initialized OutputCleaner with {config.fast_model}")
+                 else:
+-                    logger.warning(
+-                        "⚠ CEREBRAS_API_KEY not found, output cleaning will be disabled"
+-                    )
++                    logger.warning("⚠ CEREBRAS_API_KEY not found, output cleaning will be disabled")
+                     self.llm = None
+             except ImportError:
+-                logger.warning(
+-                    "⚠ LiteLLMProvider not available, output cleaning disabled"
+-                )
++                logger.warning("⚠ LiteLLMProvider not available, output cleaning disabled")
+                 self.llm = None
+         else:
+             self.llm = None
+@@ -187,10 +183,7 @@ def validate_output(
+                         )
+ 
+             # Check 3: Type validation (if schema provided)
+-            if (
+-                hasattr(target_node_spec, "input_schema")
+-                and target_node_spec.input_schema
+-            ):
++            if hasattr(target_node_spec, "input_schema") and target_node_spec.input_schema:
+                 expected_schema = target_node_spec.input_schema.get(key)
+                 if expected_schema:
+                     expected_type = expected_schema.get("type")
+@@ -310,9 +303,7 @@ async def clean_output(
+                     timeout=self.config.timeout_seconds,
+                 )
+             except TimeoutError:
+-                logger.error(
+-                    f"✗ Output cleaning timed out after {self.config.timeout_seconds}s"
+-                )
++                logger.error(f"✗ Output cleaning timed out after {self.config.timeout_seconds}s")
+                 if self.config.fallback_to_raw:
+                     return output
+                 raise
+@@ -339,9 +330,7 @@ async def clean_output(
+                 if self.config.fallback_to_raw:
+                     return output
+                 else:
+-                    raise ValueError(
+-                        f"Cleaning produced {type(cleaned)}, expected dict"
+-                    )
++                    raise ValueError(f"Cleaning produced {type(cleaned)}, expected dict")
+ 
+         except json.JSONDecodeError as e:
+             logger.error(f"✗ Failed to parse cleaned JSON: {e}")
+diff --git a/core/framework/graph/safe_eval.py b/core/framework/graph/safe_eval.py
+index 5a6afaf..c6f20bc 100644
+--- a/core/framework/graph/safe_eval.py
++++ b/core/framework/graph/safe_eval.py
+@@ -169,9 +169,7 @@ def visit_Attribute(self, node: ast.Attribute) -> Any:
+         # value.attr
+         # STRICT CHECK: No access to private attributes (starting with _)
+         if node.attr.startswith("_"):
+-            raise ValueError(
+-                f"Access to private attribute '{node.attr}' is not allowed"
+-            )
++            raise ValueError(f"Access to private attribute '{node.attr}' is not allowed")
+ 
+         val = self.visit(node.value)
+ 
+diff --git a/core/framework/llm/litellm.py b/core/framework/llm/litellm.py
+index 8b91bb1..4e01890 100644
+--- a/core/framework/llm/litellm.py
++++ b/core/framework/llm/litellm.py
+@@ -332,9 +332,7 @@ def __init__(
+         self.extra_kwargs = kwargs
+         # The Codex ChatGPT backend (chatgpt.com/backend-api/codex) rejects
+         # several standard OpenAI params: max_output_tokens, stream_options.
+-        self._codex_backend = bool(
+-            api_base and "chatgpt.com/backend-api/codex" in api_base
+-        )
++        self._codex_backend = bool(api_base and "chatgpt.com/backend-api/codex" in api_base)
+ 
+         if litellm is None:
+             raise ImportError(
+@@ -360,22 +358,14 @@ def _completion_with_rate_limit_retry(
+                 # Some providers (e.g. Gemini) return 200 with empty content on
+                 # rate limit / quota exhaustion instead of a proper 429.  Treat
+                 # empty responses the same as a rate-limit error and retry.
+-                content = (
+-                    response.choices[0].message.content if response.choices else None
+-                )
+-                has_tool_calls = bool(
+-                    response.choices and response.choices[0].message.tool_calls
+-                )
++                content = response.choices[0].message.content if response.choices else None
++                has_tool_calls = bool(response.choices and response.choices[0].message.tool_calls)
+                 if not content and not has_tool_calls:
+                     # If the conversation ends with an assistant message,
+                     # an empty response is expected — don't retry.
+                     messages = kwargs.get("messages", [])
+                     last_role = next(
+-                        (
+-                            m["role"]
+-                            for m in reversed(messages)
+-                            if m.get("role") != "system"
+-                        ),
++                        (m["role"] for m in reversed(messages) if m.get("role") != "system"),
+                         None,
+                     )
+                     if last_role == "assistant":
+@@ -386,9 +376,7 @@ def _completion_with_rate_limit_retry(
+                         return response
+ 
+                     finish_reason = (
+-                        response.choices[0].finish_reason
+-                        if response.choices
+-                        else "unknown"
++                        response.choices[0].finish_reason if response.choices else "unknown"
+                     )
+                     # Dump full request to file for debugging
+                     token_count, token_method = _estimate_tokens(model, messages)
+@@ -508,9 +496,7 @@ def complete(
+             if full_messages and full_messages[0]["role"] == "system":
+                 full_messages[0]["content"] += json_instruction
+             else:
+-                full_messages.insert(
+-                    0, {"role": "system", "content": json_instruction.strip()}
+-                )
++                full_messages.insert(0, {"role": "system", "content": json_instruction.strip()})
+ 
+         # Build kwargs
+         kwargs: dict[str, Any] = {
+@@ -535,9 +521,7 @@ def complete(
+             kwargs["response_format"] = response_format
+ 
+         # Make the call
+-        response = self._completion_with_rate_limit_retry(
+-            max_retries=max_retries, **kwargs
+-        )
++        response = self._completion_with_rate_limit_retry(max_retries=max_retries, **kwargs)
+ 
+         # Extract content
+         content = response.choices[0].message.content or ""
+@@ -578,20 +562,12 @@ async def _acompletion_with_rate_limit_retry(
+             try:
+                 response = await litellm.acompletion(**kwargs)  # type: ignore[union-attr]
+ 
+-                content = (
+-                    response.choices[0].message.content if response.choices else None
+-                )
+-                has_tool_calls = bool(
+-                    response.choices and response.choices[0].message.tool_calls
+-                )
++                content = response.choices[0].message.content if response.choices else None
++                has_tool_calls = bool(response.choices and response.choices[0].message.tool_calls)
+                 if not content and not has_tool_calls:
+                     messages = kwargs.get("messages", [])
+                     last_role = next(
+-                        (
+-                            m["role"]
+-                            for m in reversed(messages)
+-                            if m.get("role") != "system"
+-                        ),
++                        (m["role"] for m in reversed(messages) if m.get("role") != "system"),
+                         None,
+                     )
+                     if last_role == "assistant":
+@@ -602,9 +578,7 @@ async def _acompletion_with_rate_limit_retry(
+                         return response
+ 
+                     finish_reason = (
+-                        response.choices[0].finish_reason
+-                        if response.choices
+-                        else "unknown"
++                        response.choices[0].finish_reason if response.choices else "unknown"
+                     )
+                     token_count, token_method = _estimate_tokens(model, messages)
+                     dump_path = _dump_failed_request(
+@@ -716,9 +690,7 @@ async def acomplete(
+             if full_messages and full_messages[0]["role"] == "system":
+                 full_messages[0]["content"] += json_instruction
+             else:
+-                full_messages.insert(
+-                    0, {"role": "system", "content": json_instruction.strip()}
+-                )
++                full_messages.insert(0, {"role": "system", "content": json_instruction.strip()})
+ 
+         kwargs: dict[str, Any] = {
+             "model": self.model,
+@@ -736,9 +708,7 @@ async def acomplete(
+         if response_format:
+             kwargs["response_format"] = response_format
+ 
+-        response = await self._acompletion_with_rate_limit_retry(
+-            max_retries=max_retries, **kwargs
+-        )
++        response = await self._acompletion_with_rate_limit_retry(max_retries=max_retries, **kwargs)
+ 
+         content = response.choices[0].message.content or ""
+         usage = response.usage
+@@ -803,12 +773,8 @@ async def stream(
+ 
+         # Codex Responses API requires an `instructions` field (system prompt).
+         # Inject a minimal one when callers don't provide a system message.
+-        if self._codex_backend and not any(
+-            m["role"] == "system" for m in full_messages
+-        ):
+-            full_messages.insert(
+-                0, {"role": "system", "content": "You are a helpful assistant."}
+-            )
++        if self._codex_backend and not any(m["role"] == "system" for m in full_messages):
++            full_messages.insert(0, {"role": "system", "content": "You are a helpful assistant."})
+ 
+         # Add JSON mode via prompt engineering (works across all providers)
+         if json_mode:
+@@ -816,9 +782,7 @@ async def stream(
+             if full_messages and full_messages[0]["role"] == "system":
+                 full_messages[0]["content"] += json_instruction
+             else:
+-                full_messages.insert(
+-                    0, {"role": "system", "content": json_instruction.strip()}
+-                )
++                full_messages.insert(0, {"role": "system", "content": json_instruction.strip()})
+ 
+         # Remove ghost empty assistant messages (content="" and no tool_calls).
+         # These arise when a model returns an empty stream after a tool result
+@@ -828,9 +792,7 @@ async def stream(
+             m
+             for m in full_messages
+             if not (
+-                m.get("role") == "assistant"
+-                and not m.get("content")
+-                and not m.get("tool_calls")
++                m.get("role") == "assistant" and not m.get("content") and not m.get("tool_calls")
+             )
+         ]
+ 
+@@ -894,28 +856,18 @@ async def stream(
+                     # argument deltas that arrive with id=None.
+                     if delta and delta.tool_calls:
+                         for tc in delta.tool_calls:
+-                            idx = (
+-                                tc.index
+-                                if hasattr(tc, "index") and tc.index is not None
+-                                else 0
+-                            )
++                            idx = tc.index if hasattr(tc, "index") and tc.index is not None else 0
+ 
+                             if tc.id:
+                                 # New tool call announced (or done event re-sent).
+                                 # Check if this id already has a slot.
+                                 existing_idx = next(
+-                                    (
+-                                        k
+-                                        for k, v in tool_calls_acc.items()
+-                                        if v["id"] == tc.id
+-                                    ),
++                                    (k for k, v in tool_calls_acc.items() if v["id"] == tc.id),
+                                     None,
+                                 )
+                                 if existing_idx is not None:
+                                     idx = existing_idx
+-                                elif idx in tool_calls_acc and tool_calls_acc[idx][
+-                                    "id"
+-                                ] not in (
++                                elif idx in tool_calls_acc and tool_calls_acc[idx]["id"] not in (
+                                     "",
+                                     tc.id,
+                                 ):
+@@ -938,9 +890,7 @@ async def stream(
+                                 if tc.function.name:
+                                     tool_calls_acc[idx]["name"] = tc.function.name
+                                 if tc.function.arguments:
+-                                    tool_calls_acc[idx][
+-                                        "arguments"
+-                                    ] += tc.function.arguments
++                                    tool_calls_acc[idx]["arguments"] += tc.function.arguments
+ 
+                     # --- Finish ---
+                     if choice.finish_reason:
+@@ -988,11 +938,7 @@ async def stream(
+                     # all outputs via set_output tool calls, and the tool
+                     # results are the last messages.
+                     last_role = next(
+-                        (
+-                            m["role"]
+-                            for m in reversed(full_messages)
+-                            if m.get("role") != "system"
+-                        ),
++                        (m["role"] for m in reversed(full_messages) if m.get("role") != "system"),
+                         None,
+                     )
+                     if last_role in ("assistant", "tool"):
+diff --git a/core/framework/runner/runner.py b/core/framework/runner/runner.py
+index 96a5ce3..8522eba 100644
+--- a/core/framework/runner/runner.py
++++ b/core/framework/runner/runner.py
+@@ -266,9 +266,7 @@ def _is_codex_token_expired(auth_data: dict) -> bool:
+         # Codex stores last_refresh as an ISO 8601 timestamp string —
+         # convert to Unix epoch float for arithmetic.
+         try:
+-            last_refresh = datetime.fromisoformat(
+-                last_refresh.replace("Z", "+00:00")
+-            ).timestamp()
++            last_refresh = datetime.fromisoformat(last_refresh.replace("Z", "+00:00")).timestamp()
+         except (ValueError, TypeError):
+             return True
+ 
+@@ -533,14 +531,10 @@ def load_agent_export(data: str | dict) -> tuple[GraphSpec, Goal]:
+         goal_id=graph_data.get("goal_id", ""),
+         version=graph_data.get("version", "1.0.0"),
+         entry_node=graph_data.get("entry_node", ""),
+-        entry_points=graph_data.get(
+-            "entry_points", {}
+-        ),  # Support pause/resume architecture
++        entry_points=graph_data.get("entry_points", {}),  # Support pause/resume architecture
+         async_entry_points=async_entry_points,  # Support multi-entry-point agents
+         terminal_nodes=graph_data.get("terminal_nodes", []),
+-        pause_nodes=graph_data.get(
+-            "pause_nodes", []
+-        ),  # Support pause/resume architecture
++        pause_nodes=graph_data.get("pause_nodes", []),  # Support pause/resume architecture
+         nodes=nodes,
+         edges=edges,
+         max_steps=graph_data.get("max_steps", 100),
+@@ -847,9 +841,7 @@ def load(
+                 max_tokens = agent_config.max_tokens
+             else:
+                 hive_config = get_hive_config()
+-                max_tokens = hive_config.get("llm", {}).get(
+-                    "max_tokens", DEFAULT_MAX_TOKENS
+-                )
++                max_tokens = hive_config.get("llm", {}).get("max_tokens", DEFAULT_MAX_TOKENS)
+ 
+             # Read intro_message from agent metadata (shown on TUI load)
+             agent_metadata = getattr(agent_module, "metadata", None)
+@@ -1057,9 +1049,7 @@ def _setup(self, event_bus=None) -> None:
+                 # Get OAuth token from Claude Code subscription
+                 api_key = get_claude_code_token()
+                 if not api_key:
+-                    print(
+-                        "Warning: Claude Code subscription configured but no token found."
+-                    )
++                    print("Warning: Claude Code subscription configured but no token found.")
+                     print("Run 'claude' to authenticate, then try again.")
+             elif use_codex:
+                 # Get OAuth token from Codex subscription
+@@ -1107,9 +1097,9 @@ def _setup(self, event_bus=None) -> None:
+                 else:
+                     # Fall back to environment variable
+                     # First check api_key_env_var from config (set by quickstart)
+-                    api_key_env = llm_config.get(
+-                        "api_key_env_var"
+-                    ) or self._get_api_key_env_var(self.model)
++                    api_key_env = llm_config.get("api_key_env_var") or self._get_api_key_env_var(
++                        self.model
++                    )
+                     if api_key_env and os.environ.get(api_key_env):
+                         self._llm = LiteLLMProvider(
+                             model=self.model,
+@@ -1128,16 +1118,12 @@ def _setup(self, event_bus=None) -> None:
+                             if api_key_env:
+                                 os.environ[api_key_env] = api_key
+                         elif api_key_env:
+-                            print(
+-                                f"Warning: {api_key_env} not set. LLM calls will fail."
+-                            )
++                            print(f"Warning: {api_key_env} not set. LLM calls will fail.")
+                             print(f"Set it with: export {api_key_env}=your-api-key")
+ 
+             # Fail fast if the agent needs an LLM but none was configured
+             if self._llm is None:
+-                has_llm_nodes = any(
+-                    node.node_type == "event_loop" for node in self.graph.nodes
+-                )
++                has_llm_nodes = any(node.node_type == "event_loop" for node in self.graph.nodes)
+                 if has_llm_nodes:
+                     from framework.credentials.models import CredentialError
+ 
+@@ -1153,9 +1139,7 @@ def _setup(self, event_bus=None) -> None:
+                         if api_key_env
+                         else "Configure an API key for your LLM provider."
+                     )
+-                    raise CredentialError(
+-                        f"LLM API key not found for model '{self.model}'. {hint}"
+-                    )
++                    raise CredentialError(f"LLM API key not found for model '{self.model}'. {hint}")
+ 
+         # Get tools for runtime
+         tools = list(self._tool_registry.get_tools().values())
+@@ -1174,9 +1158,7 @@ def _setup(self, event_bus=None) -> None:
+             if accounts_data:
+                 from framework.graph.prompt_composer import build_accounts_prompt
+ 
+-                accounts_prompt = build_accounts_prompt(
+-                    accounts_data, tool_provider_map
+-                )
++                accounts_prompt = build_accounts_prompt(accounts_data, tool_provider_map)
+         except Exception:
+             pass  # Best-effort — agent works without account info
+ 
+@@ -1381,9 +1363,7 @@ async def run(
+             for warning in validation.warnings:
+                 if "Missing " in warning:
+                     error_lines.append(f"  {warning}")
+-            error_lines.append(
+-                "\nSet the required environment variables and re-run the agent."
+-            )
++            error_lines.append("\nSet the required environment variables and re-run the agent.")
+             error_msg = "\n".join(error_lines)
+             return ExecutionResult(
+                 success=False,
+@@ -1676,9 +1656,7 @@ def validate(self) -> ValidationResult:
+             adapter = CredentialStoreAdapter.default()
+ 
+             # Check tool credentials
+-            for _cred_name, spec in adapter.get_missing_for_tools(
+-                list(info.required_tools)
+-            ):
++            for _cred_name, spec in adapter.get_missing_for_tools(list(info.required_tools)):
+                 missing_credentials.append(spec.env_var)
+                 affected_tools = [t for t in info.required_tools if t in spec.tools]
+                 tools_str = ", ".join(affected_tools)
+@@ -1699,9 +1677,7 @@ def validate(self) -> ValidationResult:
+                 warnings.append(warning_msg)
+         except ImportError:
+             # aden_tools not installed - fall back to direct check
+-            has_llm_nodes = any(
+-                node.node_type == "event_loop" for node in self.graph.nodes
+-            )
++            has_llm_nodes = any(node.node_type == "event_loop" for node in self.graph.nodes)
+             if has_llm_nodes:
+                 api_key_env = self._get_api_key_env_var(self.model)
+                 if api_key_env and not os.environ.get(api_key_env):
+@@ -1803,9 +1779,7 @@ async def can_handle(
+                 }
+                 return CapabilityResponse(
+                     agent_name=info.name,
+-                    level=level_map.get(
+-                        data.get("level", "uncertain"), CapabilityLevel.UNCERTAIN
+-                    ),
++                    level=level_map.get(data.get("level", "uncertain"), CapabilityLevel.UNCERTAIN),
+                     confidence=float(data.get("confidence", 0.5)),
+                     reasoning=data.get("reasoning", ""),
+                     estimated_steps=data.get("estimated_steps"),
+@@ -1850,9 +1824,7 @@ def _keyword_capability_check(self, request: dict) -> "CapabilityResponse":
+             level=level,
+             confidence=confidence,
+             reasoning=f"Keyword match ratio: {match_ratio:.2f}",
+-            estimated_steps=(
+-                info.node_count if level != CapabilityLevel.CANNOT_HANDLE else None
+-            ),
++            estimated_steps=(info.node_count if level != CapabilityLevel.CANNOT_HANDLE else None),
+         )
+ 
+     async def receive_message(self, message: "AgentMessage") -> "AgentMessage":
+diff --git a/core/framework/runtime/core.py b/core/framework/runtime/core.py
+index 87bc73b..88cb251 100644
+--- a/core/framework/runtime/core.py
++++ b/core/framework/runtime/core.py
+@@ -89,9 +89,7 @@ def start_run(
+         Returns:
+             The run ID
+         """
+-        run_id = (
+-            f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+-        )
++        run_id = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+         trace_id = uuid.uuid4().hex
+         execution_id = uuid.uuid4().hex  # 32 hex, OTel/W3C-aligned for logs
+ 
+@@ -127,9 +125,7 @@ def end_run(
+         if self._current_run is None:
+             # Gracefully handle case where run was already ended or never started
+             # This can happen during exception handling cascades
+-            logger.warning(
+-                "end_run called but no run in progress (already ended or never started)"
+-            )
++            logger.warning("end_run called but no run in progress (already ended or never started)")
+             return
+ 
+         status = RunStatus.COMPLETED if success else RunStatus.FAILED
+diff --git a/core/framework/storage/checkpoint_store.py b/core/framework/storage/checkpoint_store.py
+index 9bbc3b5..bd004d1 100644
+--- a/core/framework/storage/checkpoint_store.py
++++ b/core/framework/storage/checkpoint_store.py
+@@ -95,9 +95,7 @@ def _read(checkpoint_id: str) -> Checkpoint | None:
+                 return None
+ 
+             try:
+-                return Checkpoint.model_validate_json(
+-                    checkpoint_path.read_text(encoding="utf-8")
+-                )
++                return Checkpoint.model_validate_json(checkpoint_path.read_text(encoding="utf-8"))
+             except Exception as e:
+                 logger.error(f"Failed to load checkpoint {checkpoint_id}: {e}")
+                 return None
+@@ -157,9 +155,7 @@ async def list_checkpoints(
+ 
+         # Apply filters
+         if checkpoint_type:
+-            checkpoints = [
+-                cp for cp in checkpoints if cp.checkpoint_type == checkpoint_type
+-            ]
++            checkpoints = [cp for cp in checkpoints if cp.checkpoint_type == checkpoint_type]
+ 
+         if is_clean is not None:
+             checkpoints = [cp for cp in checkpoints if cp.is_clean == is_clean]
+@@ -239,9 +235,7 @@ async def prune_checkpoints(
+                 deleted_count += 1
+ 
+         if deleted_count > 0:
+-            logger.info(
+-                f"Pruned {deleted_count} checkpoints older than {max_age_days} days"
+-            )
++            logger.info(f"Pruned {deleted_count} checkpoints older than {max_age_days} days")
+ 
+         return deleted_count
+ 
+@@ -316,9 +310,7 @@ def _write(index: CheckpointIndex):
+             return
+ 
+         # Remove checkpoint from index
+-        index.checkpoints = [
+-            cp for cp in index.checkpoints if cp.checkpoint_id != checkpoint_id
+-        ]
++        index.checkpoints = [cp for cp in index.checkpoints if cp.checkpoint_id != checkpoint_id]
+ 
+         # Update totals
+         index.total_checkpoints = len(index.checkpoints)
+diff --git a/core/framework/tools/queen_lifecycle_tools.py b/core/framework/tools/queen_lifecycle_tools.py
+index 0bf3efc..5100173 100644
+--- a/core/framework/tools/queen_lifecycle_tools.py
++++ b/core/framework/tools/queen_lifecycle_tools.py
+@@ -66,9 +66,7 @@ class WorkerSessionAdapter:
+     worker_path: Path | None = None
+ 
+ 
+-def build_worker_profile(
+-    runtime: AgentRuntime, agent_path: Path | str | None = None
+-) -> str:
++def build_worker_profile(runtime: AgentRuntime, agent_path: Path | str | None = None) -> str:
+     """Build a worker capability profile from its graph/goal definition.
+ 
+     Injected into the queen's system prompt so it knows what the worker
+@@ -226,9 +224,7 @@ async def start_worker(task: str) -> str:
+                         data={
+                             "error": "credentials_required",
+                             "message": str(e),
+-                            "agent_path": str(
+-                                getattr(session, "worker_path", "") or ""
+-                            ),
++                            "agent_path": str(getattr(session, "worker_path", "") or ""),
+                         },
+                     )
+                 )
+@@ -253,9 +249,7 @@ async def start_worker(task: str) -> str:
+             "required": ["task"],
+         },
+     )
+-    registry.register(
+-        "start_worker", _start_tool, lambda inputs: start_worker(**inputs)
+-    )
++    registry.register("start_worker", _start_tool, lambda inputs: start_worker(**inputs))
+     tools_registered += 1
+ 
+     # --- stop_worker ----------------------------------------------------------
+@@ -373,9 +367,7 @@ async def get_worker_status() -> str:
+         ),
+         parameters={"type": "object", "properties": {}},
+     )
+-    registry.register(
+-        "get_worker_status", _status_tool, lambda inputs: get_worker_status()
+-    )
++    registry.register("get_worker_status", _status_tool, lambda inputs: get_worker_status())
+     tools_registered += 1
+ 
+     # --- inject_worker_message ------------------------------------------------
+@@ -457,12 +449,8 @@ async def load_built_agent(agent_path: str) -> str:
+                 try:
+                     await session_manager.unload_worker(manager_session_id)
+                 except Exception as e:
+-                    logger.error(
+-                        "Failed to unload existing worker: %s", e, exc_info=True
+-                    )
+-                    return json.dumps(
+-                        {"error": f"Failed to unload existing worker: {e}"}
+-                    )
++                    logger.error("Failed to unload existing worker: %s", e, exc_info=True)
++                    return json.dumps({"error": f"Failed to unload existing worker: {e}"})
+ 
+             resolved_path = Path(agent_path).resolve()
+             cwd = Path.cwd().resolve()
+@@ -474,9 +462,7 @@ async def load_built_agent(agent_path: str) -> str:
+                         resolved_path,
+                         cwd,
+                     )
+-                    return json.dumps(
+-                        {"error": "Security violation: path is outside project root"}
+-                    )
++                    return json.dumps({"error": "Security violation: path is outside project root"})
+             except ValueError:
+                 # Handles cases like different drives on Windows
+                 logger.warning(
+@@ -492,14 +478,10 @@ async def load_built_agent(agent_path: str) -> str:
+                 )
+ 
+             if not resolved_path.exists():
+-                return json.dumps(
+-                    {"error": f"Agent path does not exist: {resolved_path}"}
+-                )
++                return json.dumps({"error": f"Agent path does not exist: {resolved_path}"})
+ 
+             if not resolved_path.is_dir():
+-                return json.dumps(
+-                    {"error": f"Agent path must be a directory: {resolved_path}"}
+-                )
++                return json.dumps({"error": f"Agent path must be a directory: {resolved_path}"})
+ 
+             try:
+                 updated_session = await session_manager.load_worker(
+@@ -517,9 +499,7 @@ async def load_built_agent(agent_path: str) -> str:
+                     }
+                 )
+             except Exception as e:
+-                logger.error(
+-                    "load_built_agent failed for '%s'", agent_path, exc_info=True
+-                )
++                logger.error("load_built_agent failed for '%s'", agent_path, exc_info=True)
+                 return json.dumps({"error": f"Failed to load agent: {e}"})
+ 
+         _load_built_tool = Tool(
+@@ -535,9 +515,7 @@ async def load_built_agent(agent_path: str) -> str:
+                 "properties": {
+                     "agent_path": {
+                         "type": "string",
+-                        "description": (
+-                            "Path to the agent directory (e.g. 'exports/my_agent')"
+-                        ),
++                        "description": ("Path to the agent directory (e.g. 'exports/my_agent')"),
+                     },
+                 },
+                 "required": ["agent_path"],
+diff --git a/core/framework/tui/widgets/chat_repl.py b/core/framework/tui/widgets/chat_repl.py
+index 8ef8752..2479d4e 100644
+--- a/core/framework/tui/widgets/chat_repl.py
++++ b/core/framework/tui/widgets/chat_repl.py
+@@ -183,9 +183,7 @@ def __init__(
+         self._session_index: list[str] = []  # IDs from last listing
+         self._show_logs: bool = False  # Clean mode by default
+         self._log_buffer: list[str] = []  # Buffered log lines for backfill on toggle ON
+-        self._attached_pdf: dict | None = (
+-            None  # Pending PDF attachment for next message
+-        )
++        self._attached_pdf: dict | None = None  # Pending PDF attachment for next message
+ 
+         # Queen-primary mode: when set, user input defaults to the queen.
+         # The worker only gets input when it explicitly asks (CLIENT_INPUT_REQUESTED).
+@@ -193,9 +191,7 @@ def __init__(
+         self._worker_waiting: bool = False  # True when worker asked for input
+         self._worker_input_node_id: str | None = None
+         self._worker_input_graph_id: str | None = None
+-        self._streaming_source: str | None = (
+-            None  # "queen" | None; set by app.py per event
+-        )
++        self._streaming_source: str | None = None  # "queen" | None; set by app.py per event
+ 
+         # Dedicated event loop for agent execution.
+         # Keeps blocking runtime code (LLM calls, MCP tools) off
+@@ -329,12 +325,8 @@ async def _handle_command(self, command: str) -> None:
+                 if 0 <= idx < len(self._session_index):
+                     session_id = self._session_index[idx]
+                 else:
+-                    self._write_history(
+-                        f"[bold red]Error:[/bold red] No session at index {arg}"
+-                    )
+-                    self._write_history(
+-                        "  Use [bold]/resume[/bold] to see available sessions"
+-                    )
++                    self._write_history(f"[bold red]Error:[/bold red] No session at index {arg}")
++                    self._write_history("  Use [bold]/resume[/bold] to see available sessions")
+                     return
+             else:
+                 session_id = arg
+@@ -346,9 +338,7 @@ async def _handle_command(self, command: str) -> None:
+                 self._write_history(
+                     "[bold red]Error:[/bold red] /recover requires session_id and checkpoint_id"
+                 )
+-                self._write_history(
+-                    "  Usage: [bold]/recover <session_id> <checkpoint_id>[/bold]"
+-                )
++                self._write_history("  Usage: [bold]/recover <session_id> <checkpoint_id>[/bold]")
+                 self._write_history(
+                     "  Tip: Use [bold]/sessions <session_id>[/bold] to see checkpoints"
+                 )
+@@ -415,9 +405,7 @@ def attach_pdf(self, path: Path) -> None:
+             self._write_history(f"[bold red]Error:[/bold red] File not found: {path}")
+             return
+         if path.suffix.lower() != ".pdf":
+-            self._write_history(
+-                "[bold red]Error:[/bold red] Only PDF files are supported"
+-            )
++            self._write_history("[bold red]Error:[/bold red] Only PDF files are supported")
+             return
+ 
+         # Copy to ~/.hive/assets/, deduplicating like a normal filesystem:
+@@ -437,9 +425,7 @@ def attach_pdf(self, path: Path) -> None:
+         }
+ 
+         self._write_history(f"[green]Attached:[/green] {path.name}")
+-        self._write_history(
+-            "[dim]PDF will be read by the agent on your next message.[/dim]"
+-        )
++        self._write_history("[dim]PDF will be read by the agent on your next message.[/dim]")
+ 
+     async def _cmd_attach(self, file_path: str | None = None) -> None:
+         """Attach a PDF file for context injection into the next message."""
+@@ -584,9 +570,7 @@ async def _list_sessions(self, storage_path: Path) -> None:
+                     status_colored = f"[dim]{status}[/dim]"
+ 
+                 # Session line with index and label
+-                self._write_history(
+-                    f"  [bold]{index}.[/bold] {label}  {status_colored}"
+-                )
++                self._write_history(f"  [bold]{index}.[/bold] {label}  {status_colored}")
+                 self._write_history(f"     [dim]{session_id}[/dim]")
+                 self._write_history("")  # Blank line
+ 
+@@ -594,9 +578,7 @@ async def _list_sessions(self, storage_path: Path) -> None:
+                 self._write_history(f"   [dim red]Error reading: {e}[/dim red]")
+ 
+         if self._session_index:
+-            self._write_history(
+-                "[dim]Use [bold]/resume <number>[/bold] to resume a session[/dim]"
+-            )
++            self._write_history("[dim]Use [bold]/resume <number>[/bold] to resume a session[/dim]")
+ 
+     async def _show_session_details(self, storage_path: Path, session_id: str) -> None:
+         """Show detailed information about a specific session."""
+@@ -606,9 +588,7 @@ async def _show_session_details(self, storage_path: Path, session_id: str) -> No
+         if not session_dir.exists():
+             self._write_history("[bold red]Error:[/bold red] Session not found")
+             self._write_history(f"  Path: {session_dir}")
+-            self._write_history(
+-                "  Tip: Use [bold]/sessions[/bold] to see available sessions"
+-            )
++            self._write_history("  Tip: Use [bold]/sessions[/bold] to see available sessions")
+             return
+ 
+         state_file = session_dir / "state.json"
+@@ -669,12 +649,8 @@ async def _show_session_details(self, storage_path: Path, session_id: str) -> No
+                             is_clean = cp_data.get("is_clean", False)
+ 
+                             clean_marker = "✓" if is_clean else "⚠"
+-                            self._write_history(
+-                                f"  {i}. {clean_marker} [cyan]{cp_id}[/cyan]"
+-                            )
+-                            self._write_history(
+-                                f"     Type: {cp_type}, Node: {current_node}"
+-                            )
++                            self._write_history(f"  {i}. {clean_marker} [cyan]{cp_id}[/cyan]")
++                            self._write_history(f"     Type: {cp_type}, Node: {current_node}")
+                         except Exception:
+                             pass
+ 
+@@ -699,20 +675,14 @@ async def _cmd_resume(self, session_id: str) -> None:
+ 
+             # Verify session exists
+             if not session_dir.exists():
+-                self._write_history(
+-                    f"[bold red]Error:[/bold red] Session not found: {session_id}"
+-                )
+-                self._write_history(
+-                    "  Use [bold]/sessions[/bold] to see available sessions"
+-                )
++                self._write_history(f"[bold red]Error:[/bold red] Session not found: {session_id}")
++                self._write_history("  Use [bold]/sessions[/bold] to see available sessions")
+                 return
+ 
+             # Load session state
+             state_file = session_dir / "state.json"
+             if not state_file.exists():
+-                self._write_history(
+-                    "[bold red]Error:[/bold red] Session state not found"
+-                )
++                self._write_history("[bold red]Error:[/bold red] Session state not found")
+                 return
+ 
+             import json
+@@ -745,14 +715,10 @@ async def _cmd_resume(self, session_id: str) -> None:
+                 resume_info = "Retrying with same input"
+ 
+             # Display resume info
+-            self._write_history(
+-                f"[bold cyan]🔄 Resuming session[/bold cyan] {session_id}"
+-            )
++            self._write_history(f"[bold cyan]🔄 Resuming session[/bold cyan] {session_id}")
+             self._write_history(f"   {resume_info}")
+             if paused_at:
+-                self._write_history(
+-                    "   [dim](Using session state, not checkpoint)[/dim]"
+-                )
++                self._write_history("   [dim](Using session state, not checkpoint)[/dim]")
+ 
+             # Check if already executing
+             if self._current_exec_id is not None:
+@@ -778,9 +744,7 @@ async def _cmd_resume(self, session_id: str) -> None:
+             try:
+                 entry_points = self.runtime.get_entry_points()
+                 if not entry_points:
+-                    self._write_history(
+-                        "[bold red]Error:[/bold red] No entry points available"
+-                    )
++                    self._write_history("[bold red]Error:[/bold red] No entry points available")
+                     return
+ 
+                 # Submit execution with resume state and original input data
+@@ -821,12 +785,8 @@ async def _cmd_recover(self, session_id: str, checkpoint_id: str) -> None:
+ 
+             # Verify session exists
+             if not session_dir.exists():
+-                self._write_history(
+-                    f"[bold red]Error:[/bold red] Session not found: {session_id}"
+-                )
+-                self._write_history(
+-                    "  Use [bold]/sessions[/bold] to see available sessions"
+-                )
++                self._write_history(f"[bold red]Error:[/bold red] Session not found: {session_id}")
++                self._write_history("  Use [bold]/sessions[/bold] to see available sessions")
+                 return
+ 
+             # Verify checkpoint exists
+@@ -841,9 +801,7 @@ async def _cmd_recover(self, session_id: str, checkpoint_id: str) -> None:
+                 return
+ 
+             # Display recover info
+-            self._write_history(
+-                f"[bold cyan]⏪ Recovering session[/bold cyan] {session_id}"
+-            )
++            self._write_history(f"[bold cyan]⏪ Recovering session[/bold cyan] {session_id}")
+             self._write_history(f"   From checkpoint: [cyan]{checkpoint_id}[/cyan]")
+             self._write_history(
+                 "   [dim](Checkpoint-based recovery for time-travel debugging)[/dim]"
+@@ -876,9 +834,7 @@ async def _cmd_recover(self, session_id: str, checkpoint_id: str) -> None:
+             try:
+                 entry_points = self.runtime.get_entry_points()
+                 if not entry_points:
+-                    self._write_history(
+-                        "[bold red]Error:[/bold red] No entry points available"
+-                    )
++                    self._write_history("[bold red]Error:[/bold red] No entry points available")
+                     return
+ 
+                 # Submit execution with checkpoint recovery state
+@@ -901,9 +857,7 @@ async def _cmd_recover(self, session_id: str, checkpoint_id: str) -> None:
+                 self._set_button_pause_mode()
+ 
+             except Exception as e:
+-                self._write_history(
+-                    f"[bold red]Error starting recovery:[/bold red] {e}"
+-                )
++                self._write_history(f"[bold red]Error starting recovery:[/bold red] {e}")
+                 indicator.display = False
+                 chat_input.placeholder = "Enter input for agent..."
+ 
+@@ -917,12 +871,8 @@ async def _cmd_pause(self) -> None:
+         """Immediately pause execution by cancelling task (same as Ctrl+Z)."""
+         # Check if there's a current execution
+         if not self._current_exec_id:
+-            self._write_history(
+-                "[bold yellow]No active execution to pause[/bold yellow]"
+-            )
+-            self._write_history(
+-                "  Start an execution first, then use /pause during execution"
+-            )
++            self._write_history("[bold yellow]No active execution to pause[/bold yellow]")
++            self._write_history("  Start an execution first, then use /pause during execution")
+             return
+ 
+         # Find and cancel the execution task - executor will catch and save state
+@@ -933,16 +883,12 @@ async def _cmd_pause(self) -> None:
+             if task and not task.done():
+                 task.cancel()
+                 task_cancelled = True
+-                self._write_history(
+-                    "[bold green]⏸ Execution paused - state saved[/bold green]"
+-                )
++                self._write_history("[bold green]⏸ Execution paused - state saved[/bold green]")
+                 self._write_history("  Resume later with: [bold]/resume[/bold]")
+                 break
+ 
+         if not task_cancelled:
+-            self._write_history(
+-                "[bold yellow]Execution already completed[/bold yellow]"
+-            )
++            self._write_history("[bold yellow]Execution already completed[/bold yellow]")
+ 
+     async def _cmd_coder(self, reason: str = "") -> None:
+         """User-initiated escalation to Hive Coder."""
+@@ -1008,9 +954,7 @@ def _cmd_graphs(self) -> None:
+                 markers.append("active")
+             marker_str = f" [dim]({', '.join(markers)})[/dim]" if markers else ""
+             ep_list = ", ".join(reg.entry_points.keys())
+-            active_execs = sum(
+-                len(s.active_execution_ids) for s in reg.streams.values()
+-            )
++            active_execs = sum(len(s.active_execution_ids) for s in reg.streams.values())
+             exec_str = f" [green]{active_execs} running[/green]" if active_execs else ""
+             lines.append(f"  [bold]{gid}[/bold]{marker_str} — eps: {ep_list}{exec_str}")
+         self._write_history("\n".join(lines))
+@@ -1031,9 +975,7 @@ def _cmd_switch_graph(self, graph_id: str) -> None:
+         if hasattr(app, "action_switch_graph"):
+             app.action_switch_graph(graph_id)
+         else:
+-            self._write_history(
+-                f"[bold green]Switched to graph: {graph_id}[/bold green]"
+-            )
++            self._write_history(f"[bold green]Switched to graph: {graph_id}[/bold green]")
+ 
+     async def _cmd_load_graph(self, agent_path: str) -> None:
+         """Load an agent graph into the session."""
+@@ -1124,9 +1066,7 @@ def on_mount(self) -> None:
+                     "\n[bold cyan]🔄 Auto-recovering from checkpoint "
+                     "(--resume-session + --checkpoint)[/bold cyan]"
+                 )
+-                self.call_later(
+-                    self._cmd_recover, self._resume_session, self._resume_checkpoint
+-                )
++                self.call_later(self._cmd_recover, self._resume_session, self._resume_checkpoint)
+             else:
+                 # Use /resume for session state resume
+                 history.write(
+@@ -1140,9 +1080,7 @@ def on_mount(self) -> None:
+ 
+         # Show agent intro message if available
+         if self.runtime.intro_message:
+-            history.write(
+-                f"[bold blue]Agent:[/bold blue] {self.runtime.intro_message}\n"
+-            )
++            history.write(f"[bold blue]Agent:[/bold blue] {self.runtime.intro_message}\n")
+         else:
+             history.write(
+                 "[dim]Quick start: /sessions to see previous sessions, "
+@@ -1194,9 +1132,7 @@ def _check_and_show_resumable_sessions(self) -> None:
+                 # Populate session index so /resume <number> works immediately
+                 self._session_index = [s["session_id"] for s in resumable[:3]]
+ 
+-                self._write_history(
+-                    "\n[bold yellow]Non-terminated sessions found:[/bold yellow]"
+-                )
++                self._write_history("\n[bold yellow]Non-terminated sessions found:[/bold yellow]")
+                 for i, session in enumerate(resumable[:3], 1):  # Show top 3
+                     status = session["status"]
+                     label = session["label"]
+@@ -1211,16 +1147,10 @@ def _check_and_show_resumable_sessions(self) -> None:
+                     else:
+                         status_colored = f"[dim]{status}[/dim]"
+ 
+-                    self._write_history(
+-                        f"  [bold]{i}.[/bold] {label}  {status_colored}"
+-                    )
++                    self._write_history(f"  [bold]{i}.[/bold] {label}  {status_colored}")
+ 
+-                self._write_history(
+-                    "\n  Type [bold]/resume <number>[/bold] to continue a session"
+-                )
+-                self._write_history(
+-                    "  Or just type your input to start a new session\n"
+-                )
++                self._write_history("\n  Type [bold]/resume <number>[/bold] to continue a session")
++                self._write_history("  Or just type your input to start a new session\n")
+ 
+         except Exception:
+             # Silently fail - don't block TUI startup
+@@ -1259,9 +1189,7 @@ def _set_button_idle_mode(self) -> None:
+         except Exception:
+             pass
+ 
+-    async def on_chat_text_area_submitted(
+-        self, message: ChatTextArea.Submitted
+-    ) -> None:
++    async def on_chat_text_area_submitted(self, message: ChatTextArea.Submitted) -> None:
+         """Handle chat input submission."""
+         await self._submit_input(message.text)
+ 
+@@ -1366,9 +1294,7 @@ async def _submit_input(self, user_input: str) -> None:
+             # Get entry points for the active graph, preferring manual
+             # (interactive) ones over event/timer-driven ones.
+             entry_points = self.runtime.get_entry_points()
+-            manual_eps = [
+-                ep for ep in entry_points if ep.trigger_type in ("manual", "api")
+-            ]
++            manual_eps = [ep for ep in entry_points if ep.trigger_type in ("manual", "api")]
+             if not manual_eps:
+                 manual_eps = entry_points  # fallback: use whatever is available
+             if not manual_eps:
+@@ -1403,9 +1329,7 @@ async def _submit_input(self, user_input: str) -> None:
+             input_data = {input_key: user_input}
+             if self._attached_pdf:
+                 input_data["pdf_file_path"] = self._attached_pdf["path"]
+-                self._write_history(
+-                    f"[dim]Including PDF: {self._attached_pdf['filename']}[/dim]"
+-                )
++                self._write_history(f"[dim]Including PDF: {self._attached_pdf['filename']}[/dim]")
+                 self._attached_pdf = None
+ 
+             # Submit execution to the dedicated agent loop so blocking
+@@ -1460,9 +1384,7 @@ async def _submit_input_queen_primary(self, user_input: str) -> None:
+                 )
+                 await asyncio.wrap_future(future)
+             except Exception as e:
+-                self._write_history(
+-                    f"[bold red]Error delivering to worker:[/bold red] {e}"
+-                )
++                self._write_history(f"[bold red]Error delivering to worker:[/bold red] {e}")
+             return
+ 
+         # 2. Default: inject into the queen
+@@ -1551,9 +1473,7 @@ def handle_tool_started(self, tool_name: str, tool_input: dict[str, Any]) -> Non
+         if self._show_logs:
+             self._write_history(line)
+ 
+-    def handle_tool_completed(
+-        self, tool_name: str, result: str, is_error: bool
+-    ) -> None:
++    def handle_tool_completed(self, tool_name: str, result: str, is_error: bool) -> None:
+         """Handle a tool call completing."""
+         if tool_name in ("ask_user", "escalate_to_coder"):
+             return
+@@ -1638,9 +1558,7 @@ def handle_escalation_requested(self, data: dict) -> None:
+             self._clear_streaming()
+ 
+         reason = data.get("reason", "")
+-        self._write_history(
+-            "[bold yellow]Agent is escalating to Hive Coder[/bold yellow]"
+-        )
++        self._write_history("[bold yellow]Agent is escalating to Hive Coder[/bold yellow]")
+         if reason:
+             self._write_history(f"[dim]Reason: {reason}[/dim]")
+ 
+@@ -1681,9 +1599,7 @@ def handle_input_requested(self, node_id: str, graph_id: str | None = None) -> N
+         )
+         chat_input.focus()
+ 
+-    def handle_worker_input_requested(
+-        self, node_id: str, graph_id: str | None = None
+-    ) -> None:
++    def handle_worker_input_requested(self, node_id: str, graph_id: str | None = None) -> None:
+         """Handle the worker asking for user input in queen-primary mode.
+ 
+         Sets the worker override flag so the next user input goes to the
+@@ -1692,9 +1608,7 @@ def handle_worker_input_requested(
+         """
+         # Flush queen streaming if any
+         if self._streaming_snapshot:
+-            self._write_history(
+-                f"[bold blue]Queen:[/bold blue] {self._streaming_snapshot}"
+-            )
++            self._write_history(f"[bold blue]Queen:[/bold blue] {self._streaming_snapshot}")
+             self._clear_streaming()
+ 
+         self._worker_waiting = True
+@@ -1737,9 +1651,7 @@ def handle_execution_paused(self, node_id: str, reason: str) -> None:
+ 
+     def handle_execution_resumed(self, node_id: str) -> None:
+         """Show that execution has been resumed."""
+-        self._write_history(
+-            f"[bold green]▶ Resumed[/bold green] from [cyan]{node_id}[/cyan]"
+-        )
++        self._write_history(f"[bold green]▶ Resumed[/bold green] from [cyan]{node_id}[/cyan]")
+ 
+     def handle_goal_achieved(self, data: dict[str, Any]) -> None:
+         """Show goal achievement prominently."""
+diff --git a/core/framework/utils/io.py b/core/framework/utils/io.py
+index a0884f5..17f8214 100644
+--- a/core/framework/utils/io.py
++++ b/core/framework/utils/io.py
+@@ -4,9 +4,7 @@
+ 
+ 
+ @contextmanager
+-def atomic_write(
+-    path: Path, mode: str = "w", encoding: str = "utf-8", perms: int | None = None
+-):
++def atomic_write(path: Path, mode: str = "w", encoding: str = "utf-8", perms: int | None = None):
+     tmp_path = path.with_suffix(path.suffix + ".tmp")
+     try:
+         if perms is not None:
+diff --git a/core/tests/test_safe_eval.py b/core/tests/test_safe_eval.py
+index 3f6c373..55bc87f 100644
+--- a/core/tests/test_safe_eval.py
++++ b/core/tests/test_safe_eval.py
+@@ -19,9 +19,7 @@ class CustomObj:
+         def __init__(self):
+             self.name = "test"
+ 
+-    with pytest.raises(
+-        ValueError, match="Attribute access is only allowed on basic types"
+-    ):
++    with pytest.raises(ValueError, match="Attribute access is only allowed on basic types"):
+         safe_eval("obj.name", {"obj": CustomObj()})
+ 
+ 
+diff --git a/core/tests/test_worker_monitoring_tools.py b/core/tests/test_worker_monitoring_tools.py
+index d4308b0..e9b5d61 100644
+--- a/core/tests/test_worker_monitoring_tools.py
++++ b/core/tests/test_worker_monitoring_tools.py
+@@ -45,9 +45,7 @@ def test_register_worker_monitoring_tools(mock_registry, mock_event_bus, storage
+ 
+ 
+ @pytest.mark.asyncio
+-async def test_get_worker_health_summary_no_sessions(
+-    mock_registry, mock_event_bus, storage_dir
+-):
++async def test_get_worker_health_summary_no_sessions(mock_registry, mock_event_bus, storage_dir):
+     register_worker_monitoring_tools(mock_registry, mock_event_bus, storage_dir)
+     get_health = mock_registry.tools["get_worker_health_summary"]
+ 
+@@ -58,9 +56,7 @@ async def test_get_worker_health_summary_no_sessions(
+ 
+ 
+ @pytest.mark.asyncio
+-async def test_get_worker_health_summary_auto_discover(
+-    mock_registry, mock_event_bus, storage_dir
+-):
++async def test_get_worker_health_summary_auto_discover(mock_registry, mock_event_bus, storage_dir):
+     # Setup a dummy session
+     session_dir = storage_dir / "sessions" / "sess_123"
+     session_dir.mkdir()

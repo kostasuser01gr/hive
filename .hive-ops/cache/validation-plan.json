@@ -1,23 +1,7 @@
 {
-  "fork": [
-    "uv run --project core ruff check core/ tools/",
-    "uv run --project core ruff format --check core/ tools/",
-    "cd core && uv run pytest tests/ -v",
-    "cd tools && uv run pytest tests/ -v",
-    "Validate agent exports in exports/"
-  ],
-  "official": [
-    "uv run --project core ruff check core/ tools/",
-    "uv run --project core ruff format --check core/ tools/",
-    "cd core && uv run pytest tests/ -v",
-    "cd tools && uv run pytest tests/ -v",
-    "Validate agent exports in exports/"
-  ],
-  "superset": [
-    "uv run --project core ruff check core/ tools/",
-    "uv run --project core ruff format --check core/ tools/",
-    "cd core && uv run pytest tests/ -v",
-    "cd tools && uv run pytest tests/ -v",
-    "Validate agent exports in exports/"
-  ]
+  "lint": ["uv run --project core ruff check core/", "uv run --project core ruff check tools/"],
+  "format": ["uv run --project core ruff format --check core/", "uv run --project core ruff format --check tools/"],
+  "test_core": ["cd core && uv run pytest tests/ -v"],
+  "test_tools": ["cd tools && uv run pytest tests/ -v"],
+  "validate_exports": ["uv run python scripts/validate_exports.py"]
 }
