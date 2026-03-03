@@ -1,0 +1,16 @@
+core:
+  - any:
+      - 'core/**/*'
+
+tools:
+  - any:
+      - 'tools/**/*'
+
+documentation:
+  - any:
+      - 'docs/**/*'
+      - '*.md'
+
+ci:
+  - any:
+      - '.github/**/*'
