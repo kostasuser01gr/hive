@@ -1,16 +1,16 @@
 {
-  "cycles_run": 2,
-  "issues_scanned": 35,
-  "prs_submitted": 2,
-  "prs_merged": 2,
-  "ci_pass_rate_first_try": 0.0,
-  "avg_time_to_green_ci": 0,
-  "recurring_failure_patterns": [],
-  "avg_pr_loc": 0,
+  "cycles_run": 3,
+  "issues_scanned": 51,
+  "prs_submitted": 4,
+  "prs_merged": 4,
+  "ci_pass_rate_first_try": 0.5,
+  "avg_time_to_green_ci": "7m",
+  "recurring_failure_patterns": [
+    "Format drift between local Makefile and CI uv run commands."
+  ],
+  "avg_pr_loc": 15,
   "lessons_learned": [
-    "Handle transient gh network errors in WATCH loop",
-    "Ensure mkdir -p reports before ALIGN",
-    "Rebase required for metadata file conflicts",
-    "Used upstream security signal #5631 for high-ROI fix"
+    "Always match Makefile targets precisely to CI commands to avoid discrepancies.",
+    "If auto-merge fails due to lack of branch protection, the CLI may fall back to immediate merging if not constrained."
   ]
 }
