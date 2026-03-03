@@ -1128,9 +1128,7 @@ class AgentRunner:
                             if api_key_env:
                                 os.environ[api_key_env] = api_key
                         elif api_key_env:
-                            print(
-                                f"Warning: {api_key_env} not set. LLM calls will fail."
-                            )
+                            print("Warning: LLM API key environment variable not set.")
                             print(f"Set it with: export {api_key_env}=your-api-key")
 
             # Fail fast if the agent needs an LLM but none was configured
