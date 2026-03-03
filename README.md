@@ -13,6 +13,24 @@
   <a href="docs/i18n/ko.md">한국어</a>
 </p>
 
+---
+
+## 🔱 Fork Mission: Production Safety & Evidence-First
+
+This repository is a **high-integrity fork** of [aden-hive/hive](https://github.com/aden-hive/hive). While we track upstream for features, our primary goals are:
+
+1.  **Production Correctness:** Stricter validation gates than upstream.
+2.  **Evidence-Based Merges:** No PR is merged without local validation logs stored in `.hive-ops/evidence/`.
+3.  **CI/CD Parity:** Local development environments match CI truth exactly.
+
+### 🧪 Evidence-First Strategy
+Every change in this fork must be accompanied by evidence. 
+- **Logs:** Stored in `.hive-ops/evidence/` with timestamps.
+- **Alignment:** Every PR includes an **Alignment Report** comparing fork policies vs upstream.
+- **Validation:** We run a superset of upstream + fork CI locally before every push.
+
+---
+
 <p align="center">
   <a href="https://github.com/aden-hive/hive/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="Apache 2.0 License" /></a>
   <a href="https://www.ycombinator.com/companies/aden"><img src="https://img.shields.io/badge/Y%20Combinator-Aden-orange" alt="Y Combinator" /></a>
