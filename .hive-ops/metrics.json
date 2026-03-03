@@ -1,16 +1,16 @@
 {
-  "cycles_run": 3,
+  "cycles_run": 4,
   "issues_scanned": 51,
-  "prs_submitted": 4,
-  "prs_merged": 4,
-  "ci_pass_rate_first_try": 0.5,
+  "prs_submitted": 5,
+  "prs_merged": 5,
+  "ci_pass_rate_first_try": 0.4,
   "avg_time_to_green_ci": "7m",
   "recurring_failure_patterns": [
-    "Format drift between local Makefile and CI uv run commands."
+    "Format drift due to line endings."
   ],
-  "avg_pr_loc": 15,
+  "avg_pr_loc": 10,
   "lessons_learned": [
-    "Always match Makefile targets precisely to CI commands to avoid discrepancies.",
-    "If auto-merge fails due to lack of branch protection, the CLI may fall back to immediate merging if not constrained."
+    "Set eol=lf in .gitattributes for Python repositories to avoid cross-platform format loops.",
+    "Make targets should run exact uv run CI commands for UX parity."
   ]
 }

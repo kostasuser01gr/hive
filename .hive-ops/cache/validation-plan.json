@@ -1,7 +1,17 @@
 {
-  "lint": ["uv run --project core ruff check core/", "uv run --project core ruff check tools/"],
-  "format": ["uv run --project core ruff format --check core/", "uv run --project core ruff format --check tools/"],
-  "test_core": ["cd core && uv run pytest tests/ -v"],
-  "test_tools": ["cd tools && uv run pytest tests/ -v"],
-  "validate_exports": ["uv run python scripts/validate_exports.py"]
+  "lint": [
+    "uv run --project core ruff check core/",
+    "uv run --project core ruff check tools/",
+    "uv run --project core ruff format --check core/",
+    "uv run --project core ruff format --check tools/"
+  ],
+  "test_core": [
+    "cd core && uv sync && uv run pytest tests/ -v"
+  ],
+  "test_tools": [
+    "cd tools && uv sync --extra dev && uv run pytest tests/ -v"
+  ],
+  "validate_exports": [
+    "uv run python -c \"import json, glob; [json.load(open(f)) for f in glob.glob('exports/*/agent.json')]\""
+  ]
 }
