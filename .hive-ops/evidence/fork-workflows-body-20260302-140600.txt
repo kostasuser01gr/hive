@@ -1,0 +1,902 @@
+--- .github/workflows/auto-close-duplicates.yml ---
+name: Auto-close duplicate issues
+description: Auto-closes issues that are duplicates of existing issues
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  auto-close-duplicates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Run auto-close-duplicates tests
+        run: bun test scripts/auto-close-duplicates
+
+      - name: Auto-close duplicate issues
+        run: bun run scripts/auto-close-duplicates.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          GITHUB_REPOSITORY_NAME: ${{ github.event.repository.name }}
+          STATSIG_API_KEY: ${{ secrets.STATSIG_API_KEY }}
+--- .github/workflows/ci.yml ---
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --project core --group dev
+
+      - name: Ruff lint
+        run: |
+          uv run --project core ruff check core/
+          uv run --project core ruff check tools/
+
+      - name: Ruff format
+        run: |
+          uv run --project core ruff format --check core/
+          uv run --project core ruff format --check tools/
+
+  test:
+    name: Test Python Framework
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies and run tests
+        run: |
+          cd core
+          uv sync
+          uv run pytest tests/ -v
+
+  test-tools:
+    name: Test Tools
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies and run tests
+        run: |
+          cd tools
+          uv sync --extra dev
+          uv run pytest tests/ -v
+
+  validate:
+    name: Validate Agent Exports
+    runs-on: ubuntu-latest
+    needs: [lint, test, test-tools]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: |
+          cd core
+          uv sync
+
+      - name: Validate exported agents
+        run: |
+          # Check that agent exports have valid structure
+          if [ ! -d "exports" ]; then
+            echo "No exports/ directory found, skipping validation"
+            exit 0
+          fi
+
+          shopt -s nullglob
+          agent_dirs=(exports/*/)
+          shopt -u nullglob
+
+          if [ ${#agent_dirs[@]} -eq 0 ]; then
+            echo "No agent directories in exports/, skipping validation"
+            exit 0
+          fi
+
+          validated=0
+          for agent_dir in "${agent_dirs[@]}"; do
+            if [ -f "$agent_dir/agent.json" ]; then
+              echo "Validating $agent_dir"
+              uv run python -c "import json; json.load(open('$agent_dir/agent.json'))"
+              validated=$((validated + 1))
+            fi
+          done
+
+          if [ "$validated" -eq 0 ]; then
+            echo "No agent.json files found in exports/, skipping validation"
+          else
+            echo "Validated $validated agent(s)"
+          fi
+--- .github/workflows/claude-issue-triage.yml ---
+name: Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Triage and check for duplicates
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          allowed_non_write_users: "*"
+          prompt: |
+            Analyze this new issue and perform triage tasks.
+
+            Issue: #${{ github.event.issue.number }}
+            Repository: ${{ github.repository }}
+
+            ## Your Tasks:
+
+            ### 1. Get issue details
+            Use mcp__github__get_issue to get the full details of issue #${{ github.event.issue.number }}
+
+            ### 2. Check for duplicates
+            Search for similar existing issues using mcp__github__search_issues with relevant keywords from the issue title and body.
+
+            Criteria for duplicates:
+            - Same bug or error being reported
+            - Same feature request (even if worded differently)
+            - Same question being asked
+            - Issues describing the same root problem
+
+            If you find a duplicate:
+            - Add a comment using EXACTLY this format (required for auto-close to work):
+              "Found a possible duplicate of #<issue_number>: <brief explanation of why it's a duplicate>"
+            - Do NOT apply the "duplicate" label yet (the auto-close script will add it after 12 hours if no objections)
+            - Suggest the user react with a thumbs-down if they disagree
+
+            ### 3. Check for Low-Quality / AI Spam
+            Analyze the issue quality. We are receiving many low-effort, AI-generated spam issues.
+            Flag the issue as INVALID if it matches these criteria:
+            - **Vague/Generic**: Title is "Fix bug" or "Error" without specific context.
+            - **Hallucinated**: Refers to files or features that do not exist in this repo.
+            - **Template Filler**: Body contains "Insert description here" or unrelated gibberish.
+            - **Low Effort**: No reproduction steps, no logs, only 1-2 sentences.
+
+            If identified as spam/low-quality:
+            - Add the "invalid" label.
+            - Add a comment:
+              "This issue has been automatically flagged as low-quality or potentially AI-generated spam. It lacks specific details (logs, reproduction steps, file references) required for us to help. Please open a new issue following the template exactly if this is a legitimate request."
+            - Do NOT proceed to other steps.
+
+            ### 4. Check for invalid issues (General)
+            If the issue is not spam but still lacks information:
+            - Add the "invalid" label
+            - Comment asking for clarification
+
+            ### 5. Categorize with labels (if NOT a duplicate or spam)
+            Apply appropriate labels based on the issue content. Use ONLY these labels:
+            - bug: Something isn't working
+            - enhancement: New feature or request
+            - question: Further information is requested
+            - documentation: Improvements or additions to documentation
+            - good first issue: Good for newcomers (if issue is well-defined and small scope)
+            - help wanted: Extra attention is needed (if issue needs community input)
+            - backlog: Tracked for the future, but not currently planned or prioritized
+
+            ### 6. Estimate size (if NOT a duplicate, spam, or invalid)
+            Apply exactly ONE size label to help contributors match their capacity to the task:
+            - "size: small": Docs, typos, single-file fixes, config changes
+            - "size: medium": Bug fixes with tests, adding a single tool, changes within one package
+            - "size: large": Cross-package changes (core + tools), new modules, complex logic, architectural refactors
+
+            You may apply multiple labels if appropriate (e.g., "bug", "size: small", and "good first issue").
+
+            ## Tools Available:
+            - mcp__github__get_issue: Get issue details
+            - mcp__github__search_issues: Search for similar issues
+            - mcp__github__list_issues: List recent issues if needed
+            - mcp__github__add_issue_comment: Add a comment
+            - mcp__github__update_issue: Add labels
+            - mcp__github__get_issue_comments: Get existing comments
+
+            Be thorough but efficient. Focus on accurate categorization and finding true duplicates.
+
+          claude_args: |
+            --model claude-haiku-4-5-20251001
+            --allowedTools "mcp__github__get_issue,mcp__github__search_issues,mcp__github__list_issues,mcp__github__add_issue_comment,mcp__github__update_issue,mcp__github__get_issue_comments"
+--- .github/workflows/codeql.yml ---
+name: "CodeQL"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ "main" ]
+  schedule:
+    - cron: '34 1 * * 4'
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: "ubuntu-latest"
+    timeout-minutes: 360
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'python' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
+--- .github/workflows/pr-check-command.yml ---
+name: PR Check Command
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  check-pr:
+    # Only run on PR comments that start with /check
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/check')
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+      checks: write
+      statuses: write
+
+    steps:
+      - name: Check PR requirements
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.issue.number;
+            console.log(`Triggered by /check comment on PR #${prNumber}`);
+
+            // Fetch PR data
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            const prBody = pr.body || '';
+            const prTitle = pr.title || '';
+            const prAuthor = pr.user.login;
+            const headSha = pr.head.sha;
+
+            // Create a check run in progress
+            const { data: checkRun } = await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'check-requirements',
+              head_sha: headSha,
+              status: 'in_progress',
+              started_at: new Date().toISOString(),
+            });
+
+            // Extract issue numbers
+            const issuePattern = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)?\s*#(\d+)/gi;
+            const allText = `${prTitle} ${prBody}`;
+            const matches = [...allText.matchAll(issuePattern)];
+            const issueNumbers = [...new Set(matches.map(m => parseInt(m[1], 10)))];
+
+            console.log(`PR #${prNumber}:`);
+            console.log(`  Author: ${prAuthor}`);
+            console.log(`  Found issue references: ${issueNumbers.length > 0 ? issueNumbers.join(', ') : 'none'}`);
+
+            if (issueNumbers.length === 0) {
+              const message = `## PR Closed - Requirements Not Met
+
+            This PR has been automatically closed because it doesn't meet the requirements.
+
+            **Missing:** No linked issue found.
+
+            **To fix:**
+            1. Create or find an existing issue for this work
+            2. Assign yourself to the issue
+            3. Re-open this PR and add \`Fixes #123\` in the description
+
+            **Why is this required?** See #472 for details.`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: message,
+              });
+
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                state: 'closed',
+              });
+
+              // Update check run to failure
+              await github.rest.checks.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                check_run_id: checkRun.id,
+                status: 'completed',
+                conclusion: 'failure',
+                completed_at: new Date().toISOString(),
+                output: {
+                  title: 'Missing linked issue',
+                  summary: 'PR must reference an issue (e.g., `Fixes #123`)',
+                },
+              });
+
+              core.setFailed('PR must reference an issue');
+              return;
+            }
+
+            // Check if PR author is assigned to any linked issue
+            let issueWithAuthorAssigned = null;
+            let issuesWithoutAuthor = [];
+
+            for (const issueNum of issueNumbers) {
+              try {
+                const { data: issue } = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNum,
+                });
+
+                const assigneeLogins = (issue.assignees || []).map(a => a.login);
+                if (assigneeLogins.includes(prAuthor)) {
+                  issueWithAuthorAssigned = issueNum;
+                  console.log(`  Issue #${issueNum} has PR author ${prAuthor} as assignee`);
+                  break;
+                } else {
+                  issuesWithoutAuthor.push({
+                    number: issueNum,
+                    assignees: assigneeLogins
+                  });
+                  console.log(`  Issue #${issueNum} assignees: ${assigneeLogins.length > 0 ? assigneeLogins.join(', ') : 'none'}`);
+                }
+              } catch (error) {
+                console.log(`  Issue #${issueNum} not found`);
+              }
+            }
+
+            if (!issueWithAuthorAssigned) {
+              const issueList = issuesWithoutAuthor.map(i =>
+                `#${i.number} (assignees: ${i.assignees.length > 0 ? i.assignees.join(', ') : 'none'})`
+              ).join(', ');
+
+              const message = `## PR Closed - Requirements Not Met
+
+            This PR has been automatically closed because it doesn't meet the requirements.
+
+            **PR Author:** @${prAuthor}
+            **Found issues:** ${issueList}
+            **Problem:** The PR author must be assigned to the linked issue.
+
+            **To fix:**
+            1. Assign yourself (@${prAuthor}) to one of the linked issues
+            2. Re-open this PR
+
+            **Why is this required?** See #472 for details.`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: message,
+              });
+
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                state: 'closed',
+              });
+
+              // Update check run to failure
+              await github.rest.checks.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                check_run_id: checkRun.id,
+                status: 'completed',
+                conclusion: 'failure',
+                completed_at: new Date().toISOString(),
+                output: {
+                  title: 'PR author not assigned to issue',
+                  summary: `PR author @${prAuthor} must be assigned to one of the linked issues: ${issueList}`,
+                },
+              });
+
+              core.setFailed('PR author must be assigned to the linked issue');
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: `✅ PR requirements met! Issue #${issueWithAuthorAssigned} has @${prAuthor} as assignee.`,
+              });
+
+              // Update check run to success
+              await github.rest.checks.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                check_run_id: checkRun.id,
+                status: 'completed',
+                conclusion: 'success',
+                completed_at: new Date().toISOString(),
+                output: {
+                  title: 'Requirements met',
+                  summary: `Issue #${issueWithAuthorAssigned} has @${prAuthor} as assignee.`,
+                },
+              });
+
+              console.log(`PR requirements met!`);
+            }
+--- .github/workflows/pr-requirements-backfill.yml ---
+name: PR Requirements Backfill
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-all-open-prs:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Check all open PRs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+
+            console.log(`Found ${pullRequests.length} open PRs`);
+
+            for (const pr of pullRequests) {
+              const prNumber = pr.number;
+              const prBody = pr.body || '';
+              const prTitle = pr.title || '';
+              const prAuthor = pr.user.login;
+
+              console.log(`\nChecking PR #${prNumber}: ${prTitle}`);
+
+              // Extract issue numbers from body and title
+              const issuePattern = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)?\s*#(\d+)/gi;
+              const allText = `${prTitle} ${prBody}`;
+              const matches = [...allText.matchAll(issuePattern)];
+              const issueNumbers = [...new Set(matches.map(m => parseInt(m[1], 10)))];
+
+              console.log(`  Found issue references: ${issueNumbers.length > 0 ? issueNumbers.join(', ') : 'none'}`);
+
+              if (issueNumbers.length === 0) {
+                console.log(`  ❌ No linked issue - closing PR`);
+
+                const message = `## PR Closed - Requirements Not Met
+
+            This PR has been automatically closed because it doesn't meet the requirements.
+
+            **Missing:** No linked issue found.
+
+            **To fix:**
+            1. Create or find an existing issue for this work
+            2. Assign yourself to the issue
+            3. Re-open this PR and add \`Fixes #123\` in the description`;
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: message,
+                });
+
+                await github.rest.pulls.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: prNumber,
+                  state: 'closed',
+                });
+
+                continue;
+              }
+
+              // Check if any linked issue has the PR author as assignee
+              let issueWithAuthorAssigned = null;
+              let issuesWithoutAuthor = [];
+
+              for (const issueNum of issueNumbers) {
+                try {
+                  const { data: issue } = await github.rest.issues.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNum,
+                  });
+
+                  const assigneeLogins = (issue.assignees || []).map(a => a.login);
+                  if (assigneeLogins.includes(prAuthor)) {
+                    issueWithAuthorAssigned = issueNum;
+                    break;
+                  } else {
+                    issuesWithoutAuthor.push({
+                      number: issueNum,
+                      assignees: assigneeLogins
+                    });
+                  }
+                } catch (error) {
+                  console.log(`  Issue #${issueNum} not found or inaccessible`);
+                }
+              }
+
+              if (!issueWithAuthorAssigned) {
+                const issueList = issuesWithoutAuthor.map(i =>
+                  `#${i.number} (assignees: ${i.assignees.length > 0 ? i.assignees.join(', ') : 'none'})`
+                ).join(', ');
+
+                console.log(`  ❌ PR author not assigned to any linked issue - closing PR`);
+
+                const message = `## PR Closed - Requirements Not Met
+
+            This PR has been automatically closed because it doesn't meet the requirements.
+
+            **PR Author:** @${prAuthor}
+            **Found issues:** ${issueList}
+            **Problem:** The PR author must be assigned to the linked issue.
+
+            **To fix:**
+            1. Assign yourself (@${prAuthor}) to one of the linked issues
+            2. Re-open this PR`;
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: message,
+                });
+
+                await github.rest.pulls.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: prNumber,
+                  state: 'closed',
+                });
+              } else {
+                console.log(`  ✅ PR requirements met! Issue #${issueWithAuthorAssigned} has ${prAuthor} as assignee.`);
+              }
+            }
+
+            console.log('\nBackfill complete!');
+--- .github/workflows/pr-requirements.yml ---
+name: PR Requirements Check
+
+on:
+  pull_request_target:
+    types: [opened, reopened, edited, synchronize]
+
+jobs:
+  check-requirements:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Check PR has linked issue with assignee
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const prNumber = pr.number;
+            const prBody = pr.body || '';
+            const prTitle = pr.title || '';
+            const prLabels = (pr.labels || []).map(l => l.name);
+
+            // Allow micro-fix and documentation PRs without a linked issue
+            const isMicroFix = prLabels.includes('micro-fix') || /micro-fix/i.test(prTitle);
+            const isDocumentation = prLabels.includes('documentation') || /\bdocs?\b/i.test(prTitle);
+            if (isMicroFix || isDocumentation) {
+              const reason = isMicroFix ? 'micro-fix' : 'documentation';
+              console.log(`PR #${prNumber} is a ${reason}, skipping issue requirement.`);
+              return;
+            }
+
+            // Extract issue numbers from body and title
+            // Matches: fixes #123, closes #123, resolves #123, or plain #123
+            const issuePattern = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)?\s*#(\d+)/gi;
+
+            const allText = `${prTitle} ${prBody}`;
+            const matches = [...allText.matchAll(issuePattern)];
+            const issueNumbers = [...new Set(matches.map(m => parseInt(m[1], 10)))];
+
+            console.log(`PR #${prNumber}:`);
+            console.log(`  Found issue references: ${issueNumbers.length > 0 ? issueNumbers.join(', ') : 'none'}`);
+
+            if (issueNumbers.length === 0) {
+              const message = `## PR Closed - Requirements Not Met
+
+            This PR has been automatically closed because it doesn't meet the requirements.
+
+            **Missing:** No linked issue found.
+
+            **To fix:**
+            1. Create or find an existing issue for this work
+            2. Assign yourself to the issue
+            3. Re-open this PR and add \`Fixes #123\` in the description
+
+            **Exception:** To bypass this requirement, you can:
+            - Add the \`micro-fix\` label or include \`micro-fix\` in your PR title for trivial fixes
+            - Add the \`documentation\` label or include \`doc\`/\`docs\` in your PR title for documentation changes
+
+            **Micro-fix requirements** (must meet ALL):
+            | Qualifies | Disqualifies |
+            |-----------|--------------|
+            | < 20 lines changed | Any functional bug fix |
+            | Typos & Documentation & Linting | Refactoring for "clean code" |
+            | No logic/API/DB changes | New features (even tiny ones) |
+
+            **Why is this required?** See #472 for details.`;
+
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+              });
+
+              const botComment = comments.data.find(
+                (c) => c.user.type === 'Bot' && c.body.includes('PR Closed - Requirements Not Met')
+              );
+
+              if (!botComment) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: message,
+                });
+              }
+
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                state: 'closed',
+              });
+
+              core.setFailed('PR must reference an issue');
+              return;
+            }
+
+            // Check if any linked issue has the PR author as assignee
+            const prAuthor = pr.user.login;
+            let issueWithAuthorAssigned = null;
+            let issuesWithoutAuthor = [];
+
+            for (const issueNum of issueNumbers) {
+              try {
+                const { data: issue } = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNum,
+                });
+
+                const assigneeLogins = (issue.assignees || []).map(a => a.login);
+                if (assigneeLogins.includes(prAuthor)) {
+                  issueWithAuthorAssigned = issueNum;
+                  console.log(`  Issue #${issueNum} has PR author ${prAuthor} as assignee`);
+                  break;
+                } else {
+                  issuesWithoutAuthor.push({
+                    number: issueNum,
+                    assignees: assigneeLogins
+                  });
+                  console.log(`  Issue #${issueNum} assignees: ${assigneeLogins.length > 0 ? assigneeLogins.join(', ') : 'none'} (PR author: ${prAuthor})`);
+                }
+              } catch (error) {
+                console.log(`  Issue #${issueNum} not found or inaccessible`);
+              }
+            }
+
+            if (!issueWithAuthorAssigned) {
+              const issueList = issuesWithoutAuthor.map(i =>
+                `#${i.number} (assignees: ${i.assignees.length > 0 ? i.assignees.join(', ') : 'none'})`
+              ).join(', ');
+
+              const message = `## PR Closed - Requirements Not Met
+
+            This PR has been automatically closed because it doesn't meet the requirements.
+
+            **PR Author:** @${prAuthor}
+            **Found issues:** ${issueList}
+            **Problem:** The PR author must be assigned to the linked issue.
+
+            **To fix:**
+            1. Assign yourself (@${prAuthor}) to one of the linked issues
+            2. Re-open this PR
+
+            **Exception:** To bypass this requirement, you can:
+            - Add the \`micro-fix\` label or include \`micro-fix\` in your PR title for trivial fixes
+            - Add the \`documentation\` label or include \`doc\`/\`docs\` in your PR title for documentation changes
+
+            **Micro-fix requirements** (must meet ALL):
+            | Qualifies | Disqualifies |
+            |-----------|--------------|
+            | < 20 lines changed | Any functional bug fix |
+            | Typos & Documentation & Linting | Refactoring for "clean code" |
+            | No logic/API/DB changes | New features (even tiny ones) |
+
+            **Why is this required?** See #472 for details.`;
+
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+              });
+
+              const botComment = comments.data.find(
+                (c) => c.user.type === 'Bot' && c.body.includes('PR Closed - Requirements Not Met')
+              );
+
+              if (!botComment) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: message,
+                });
+              }
+
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                state: 'closed',
+              });
+
+              core.setFailed('PR author must be assigned to the linked issue');
+            } else {
+              console.log(`PR requirements met! Issue #${issueWithAuthorAssigned} has ${prAuthor} as assignee.`);
+            }
+--- .github/workflows/release.yml ---
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: |
+          cd core
+          uv sync
+
+      - name: Run tests
+        run: |
+          cd core
+          uv run pytest tests/ -v
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Extract version from tag
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref, '-') }}

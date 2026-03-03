@@ -1,0 +1,11 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+lint.select = [
+  "B", # bugbear errors
+  "C4", # flake8-comprehensions errors
+  "E", # pycodestyle errors
+  "F", # pyflakes errors
+  "I", # import sorting
+  "Q", # flake8-quotes errors
