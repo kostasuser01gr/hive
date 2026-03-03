@@ -20,13 +20,15 @@ Fixes #(issue number)
 - Change 2
 - Change 3
 
-## Testing
+## Validation Evidence (Mandatory)
 
-Describe the tests you ran to verify your changes:
+Provide logs or screenshots demonstrating that the superset validation plan passed.
+All automated runs must store evidence in `.hive-ops/evidence/`.
 
-- [ ] Unit tests pass (`cd core && pytest tests/`)
-- [ ] Lint passes (`cd core && ruff check .`)
-- [ ] Manual testing performed
+- [ ] I have provided execution evidence (logs/exit codes) for local checks.
+- [ ] Unit tests pass (`cd core && pytest tests/` and `cd tools && pytest tests/`)
+- [ ] Lint & Format pass (`make check` or `uv run ruff check`)
+- [ ] The alignment report confirms no unintended drift.
 
 ## Checklist
 
