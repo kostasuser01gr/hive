@@ -16,10 +16,11 @@ def register_tools(mcp: FastMCP) -> None:
         agent_id: str,
         session_id: str,
         append: bool = False,
+        overwrite: bool = False,
     ) -> dict:
         """
         Purpose
-            Create a new file or append content to an existing file.
+            Create a new file or modify an existing file.
 
         When to use
             Append new events to append-only logs
@@ -27,7 +28,7 @@ def register_tools(mcp: FastMCP) -> None:
             Initialize new canonical memory files
 
         Rules & Constraints
-            Must not overwrite canonical memory unless explicitly allowed
+            By default, this tool will NOT overwrite an existing file unless overwrite=True or append=True.
             Should include structured data (JSON, Markdown with headers)
             Every write must be intentional and minimal
 
@@ -41,6 +42,7 @@ def register_tools(mcp: FastMCP) -> None:
             agent_id: The ID of the agent
             session_id: The ID of the current session
             append: Whether to append to the file instead of overwriting (default: False)
+            overwrite: Whether to overwrite the file if it already exists (default: False)
 
         Returns:
             Dict with success status and path, or error dict
@@ -48,6 +50,16 @@ def register_tools(mcp: FastMCP) -> None:
         try:
             secure_path = get_secure_path(path, workspace_id, agent_id, session_id)
             os.makedirs(os.path.dirname(secure_path), exist_ok=True)
+
+            # Check for accidental overwrite
+            if os.path.exists(secure_path) and not append and not overwrite:
+                return {
+                    "error": (
+                        f"File '{path}' already exists. Set 'overwrite=True' to overwrite, "
+                        "or 'append=True' to append content."
+                    )
+                }
+
             mode = "a" if append else "w"
             with open(secure_path, mode, encoding="utf-8") as f:
                 f.write(content)
