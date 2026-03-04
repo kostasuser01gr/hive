@@ -132,16 +132,21 @@ class MCPClient:
         if self._connected:
             return
 
-        if self.config.transport == "stdio":
-            self._connect_stdio()
-        elif self.config.transport == "http":
-            self._connect_http()
-        else:
-            raise ValueError(f"Unsupported transport: {self.config.transport}")
+        try:
+            if self.config.transport == "stdio":
+                self._connect_stdio()
+            elif self.config.transport == "http":
+                self._connect_http()
+            else:
+                raise ValueError(f"Unsupported transport: {self.config.transport}")
 
-        # Discover tools
-        self._discover_tools()
-        self._connected = True
+            # Discover tools
+            self._discover_tools()
+            self._connected = True
+        except Exception:
+            # Clean up loop and thread if they were started but connection failed
+            self.disconnect()
+            raise
 
     def _connect_stdio(self) -> None:
         """Connect to MCP server via STDIO transport using MCP SDK with persistent connection."""
@@ -187,14 +192,18 @@ class MCPClient:
                         # Redirect server stderr to devnull to prevent raw
                         # output from leaking behind the TUI.
                         devnull = open(os.devnull, "w")  # noqa: SIM115
-                        self._stdio_context = stdio_client(server_params, errlog=devnull)
+                        self._stdio_context = stdio_client(
+                            server_params, errlog=devnull
+                        )
                         (
                             self._read_stream,
                             self._write_stream,
                         ) = await self._stdio_context.__aenter__()
 
                         # Create persistent session
-                        self._session = ClientSession(self._read_stream, self._write_stream)
+                        self._session = ClientSession(
+                            self._read_stream, self._write_stream
+                        )
                         await self._session.__aenter__()
 
                         # Initialize session
@@ -224,7 +233,9 @@ class MCPClient:
             if connection_error:
                 raise connection_error[0]
 
-            logger.info(f"Connected to MCP server '{self.config.name}' via STDIO (persistent)")
+            logger.info(
+                f"Connected to MCP server '{self.config.name}' via STDIO (persistent)"
+            )
         except Exception as e:
             raise RuntimeError(f"Failed to connect to MCP server: {e}") from e
 
@@ -247,7 +258,9 @@ class MCPClient:
                 f"Connected to MCP server '{self.config.name}' via HTTP at {self.config.url}"
             )
         except Exception as e:
-            logger.warning(f"Health check failed for MCP server '{self.config.name}': {e}")
+            logger.warning(
+                f"Health check failed for MCP server '{self.config.name}': {e}"
+            )
             # Continue anyway, server might not have health endpoint
 
     def _discover_tools(self) -> None:
@@ -357,7 +370,9 @@ class MCPClient:
         else:
             return self._call_tool_http(tool_name, arguments)
 
-    async def _call_tool_stdio_async(self, tool_name: str, arguments: dict[str, Any]) -> Any:
+    async def _call_tool_stdio_async(
+        self, tool_name: str, arguments: dict[str, Any]
+    ) -> Any:
         """Call tool via STDIO protocol using persistent session."""
         if not self._session:
             raise RuntimeError("STDIO session not initialized")
@@ -476,7 +491,9 @@ class MCPClient:
                 except TimeoutError:
                     # Cleanup took too long - may indicate stuck resources or slow MCP server
                     cleanup_attempted = True
-                    logger.warning(f"Async cleanup timed out after {self._CLEANUP_TIMEOUT} seconds")
+                    logger.warning(
+                        f"Async cleanup timed out after {self._CLEANUP_TIMEOUT} seconds"
+                    )
                 except RuntimeError as e:
                     # Likely: loop stopped between is_running() check and run_coroutine_threadsafe()
                     cleanup_attempted = True
