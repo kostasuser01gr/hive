@@ -318,7 +318,9 @@ class CredentialStore:
             result["params"] = self.resolve_params(spec.query_params)
 
         if spec.body_fields:
-            result["data"] = {key: self.resolve(value) for key, value in spec.body_fields.items()}
+            result["data"] = {
+                key: self.resolve(value) for key, value in spec.body_fields.items()
+            }
 
         return result
 
@@ -386,7 +388,9 @@ class CredentialStore:
             for c in creds
         ]
 
-    def get_credential_by_alias(self, provider_name: str, alias: str) -> CredentialObject | None:
+    def get_credential_by_alias(
+        self, provider_name: str, alias: str
+    ) -> CredentialObject | None:
         """Find a credential by provider name and alias.
 
         Args:
@@ -411,7 +415,9 @@ class CredentialStore:
                     return cred
         return None
 
-    def get_credential_by_identity(self, provider_name: str, label: str) -> CredentialObject | None:
+    def get_credential_by_identity(
+        self, provider_name: str, label: str
+    ) -> CredentialObject | None:
         """Alias for get_credential_by_alias (backward compat)."""
         return self.get_credential_by_alias(provider_name, label)
 
@@ -530,7 +536,7 @@ class CredentialStore:
 
         except CredentialRefreshError as e:
             logger.error(f"Failed to refresh credential '{credential.id}': {e}")
-            return credential
+            raise
 
     def refresh_credential(self, credential_id: str) -> CredentialObject | None:
         """
@@ -612,7 +618,10 @@ class CredentialStore:
         for cred_id, keys in credentials.items():
             cred_objects[cred_id] = CredentialObject(
                 id=cred_id,
-                keys={k: CredentialKey(name=k, value=SecretStr(v)) for k, v in keys.items()},
+                keys={
+                    k: CredentialKey(name=k, value=SecretStr(v))
+                    for k, v in keys.items()
+                },
             )
 
         return cls(
