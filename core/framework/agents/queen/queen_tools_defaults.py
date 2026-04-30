@@ -51,10 +51,14 @@ _TOOL_CATEGORIES: dict[str, list[str]] = {
         "hashline_edit",
     ],
     # Shell + process control — engineering personas only.
+    # Includes the legacy coder-tools commands (run_command, bash_*) and
+    # the full shell-tools MCP server (foreground exec with auto-promotion,
+    # background jobs, persistent PTY sessions, ripgrep/find).
     "shell": [
         "execute_command_tool",
         "bash_kill",
         "bash_output",
+        "@server:shell-tools",
     ],
     # Tabular data. CSV/Excel read/write + DuckDB SQL.
     "data": [
