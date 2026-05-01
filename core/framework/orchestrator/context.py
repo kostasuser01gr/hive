@@ -30,7 +30,6 @@ _ALWAYS_AVAILABLE_TOOLS: frozenset[str] = frozenset(
         "write_file",
         "edit_file",
         "search_files",
-        "hashline_edit",
         "set_output",
         "escalate",
     }

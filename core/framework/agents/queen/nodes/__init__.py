@@ -40,7 +40,6 @@ _QUEEN_INDEPENDENT_TOOLS = [
     "read_file",
     "write_file",
     "edit_file",
-    "hashline_edit",
     "search_files",
     # NOTE (2026-04-16): ``run_parallel_workers`` is not in the DM phase.
     # Pure DM is for conversation with the user; fan out parallel work via
@@ -240,7 +239,10 @@ re-read state.
 See "Independent execution" for the per-step flow and granularity rule.
 
 ## File I/O (files-tools MCP)
-- read_file, write_file, edit_file, hashline_edit, search_files
+- read_file, write_file, edit_file, search_files
+  - edit_file covers single-file fuzzy find/replace (mode='replace', default) \
+and multi-file structured patches (mode='patch'). Patch mode supports \
+Update / Add / Delete / Move atomically across many files in one call.
   - search_files covers grep/find/ls in one tool: target='content' to \
 search inside files, target='files' (with a glob like '*.py') to list \
 or find files. Mtime-sorted in files mode.

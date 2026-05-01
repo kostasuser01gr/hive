@@ -42,10 +42,11 @@ _WORKER_INHERITED_TOOLS: frozenset[str] = frozenset(
         "read_file",
         "write_file",
         "edit_file",
-        "hashline_edit",
         "search_files",
-        # Shell
-        "run_command",
+        # Terminal (basics — exec + ripgrep + glob/find)
+        "terminal_exec",
+        "terminal_rg",
+        "terminal_find",
         # Framework synthetics (always available to any AgentLoop node)
         "set_output",
         "escalate",

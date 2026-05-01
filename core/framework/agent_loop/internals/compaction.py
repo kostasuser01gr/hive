@@ -30,19 +30,38 @@ logger = logging.getLogger(__name__)
 LLM_COMPACT_CHAR_LIMIT: int = 240_000
 LLM_COMPACT_MAX_DEPTH: int = 10
 
-# Microcompaction: tools whose results can be safely cleared
+# Microcompaction: tools whose results can be safely cleared from context
+# because the agent can re-derive them on demand. The bar for inclusion is
+# "old result has no irreversible value": file content can be re-read, a
+# search can be re-run, a screenshot can be re-captured, terminal output can
+# be re-fetched, etc. Write / edit results are short confirmations whose
+# value is in the side effect, not the message — also fair game.
 COMPACTABLE_TOOLS: frozenset[str] = frozenset(
     {
+        # File ops — content lives on disk, re-readable.
         "read_file",
-        "run_command",
-        "web_search",
-        "web_fetch",
         "search_files",
         "write_file",
         "edit_file",
-        "apply_patch",
-        "hashline_edit",
+        "pdf_read",
+        # Terminal — re-runnable; advanced job/output tools produce verbose
+        # logs whose recent state is what matters.
+        "terminal_exec",
+        "terminal_rg",
+        "terminal_find",
+        "terminal_output_get",
+        "terminal_job_logs",
+        # Web / research — pages and queries can be re-fetched.
+        "web_scrape",
+        "search_papers",
+        "download_paper",
+        "search_wikipedia",
+        # Browser read-only inspection — current page state is what matters,
+        # old snapshots are stale by definition.
         "browser_screenshot",
+        "browser_snapshot",
+        "browser_html",
+        "browser_get_text",
     }
 )
 

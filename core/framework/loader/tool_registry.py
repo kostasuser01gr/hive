@@ -72,19 +72,25 @@ class ToolRegistry:
             # File system reads
             "read_file",
             "search_files",
-            "grep",
-            "glob",
-            # Web reads
-            "web_search",
-            "web_fetch",
+            "pdf_read",
+            # Terminal reads (rg / find / output buffer polling — neither
+            # changes process state)
+            "terminal_rg",
+            "terminal_find",
+            "terminal_output_get",
+            # Web / research reads (re-issuable, side-effect-free fetches)
+            "web_scrape",
+            "search_papers",
+            "search_wikipedia",
+            "download_paper",
             # Browser read-only snapshots (mutate-free observations)
             "browser_screenshot",
             "browser_snapshot",
             "browser_console",
             "browser_get_text",
-            # Background bash polling - reads output buffers only, does
-            # not touch the subprocess itself.
-            "bash_output",
+            "browser_html",
+            "browser_get_attribute",
+            "browser_get_rect",
         }
     )
 

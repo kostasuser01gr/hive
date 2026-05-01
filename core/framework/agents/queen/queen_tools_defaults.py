@@ -4,7 +4,7 @@ Every queen inherits the same MCP surface (all servers loaded for the
 queen agent), but exposing 94+ tools to every persona clutters the LLM
 tool catalog and wastes prompt tokens. This module defines a sensible
 default allowlist per queen persona so, e.g., Head of Legal doesn't
-see port scanners and Head of Finance doesn't see ``apply_patch``.
+see port scanners and Head of Brand & Design doesn't see CSV/SQL tools.
 
 Defaults apply only when the queen has no ``tools.json`` sidecar — the
 moment the user saves an allowlist through the Tool Library, the
