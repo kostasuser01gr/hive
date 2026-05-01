@@ -249,7 +249,7 @@ or find files. Mtime-sorted in files mode.
 
 ## Browser Automation (gcu-tools MCP)
 - Use `browser_*` tools — `browser_open(url)` is the cold-start entry point \
-  (lazy-creates the context; no `browser_start` first). Then `browser_navigate`, \
+  (lazy-creates the context; no separate "start" call). Then `browser_navigate`, \
   `browser_click`, `browser_type`, `browser_snapshot`, \
   <!-- vision-only -->`browser_screenshot`, <!-- /vision-only -->`browser_scroll`, \
   `browser_tabs`, `browser_close`, `browser_evaluate`, etc.

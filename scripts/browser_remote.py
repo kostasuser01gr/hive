@@ -272,12 +272,14 @@ def main() -> None:
         logger.error("Failed to connect to GCU server: %s", e)
         sys.exit(1)
 
-    # Auto-start browser context so tools work immediately
+    # Warm the browser context so the first interactive call doesn't pay the
+    # cold-start round trip. about:blank lazy-creates the context just like
+    # a real URL would, without committing to a destination page.
     try:
-        result = client.call_tool("browser_start", {})
-        logger.info("browser_start: %s", result)
+        result = client.call_tool("browser_open", {"url": "about:blank"})
+        logger.info("browser_open(about:blank): %s", result)
     except Exception as e:
-        logger.warning("browser_start failed (may already be started): %s", e)
+        logger.warning("browser warm-up failed (may already be running): %s", e)
 
     app = create_app()
 

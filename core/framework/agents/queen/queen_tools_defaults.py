@@ -88,7 +88,6 @@ _TOOL_CATEGORIES: dict[str, list[str]] = {
     "browser_basic": [
         "browser_setup",
         "browser_status",
-        "browser_start",
         "browser_stop",
         "browser_tabs",
         "browser_open",

@@ -642,7 +642,7 @@ def register_inspection_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_snapshot", params, result=result)
             return result
 
@@ -727,7 +727,7 @@ def register_inspection_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_html", params, result=result)
             return result
 

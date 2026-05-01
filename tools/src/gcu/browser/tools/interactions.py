@@ -153,7 +153,7 @@ def register_interaction_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_click", params, result=result)
             return result
 
@@ -247,7 +247,7 @@ def register_interaction_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_click_coordinate", params, result=result)
             return _text_only(result)
 
@@ -352,7 +352,7 @@ def register_interaction_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_type", params, result=result)
             return result
 
@@ -432,7 +432,7 @@ def register_interaction_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_type_focused", params, result=result)
             return result
 
@@ -506,7 +506,7 @@ def register_interaction_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_press", params, result=result)
             return result
 
@@ -560,7 +560,7 @@ def register_interaction_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_hover", params, result=result)
             return result
 
@@ -627,7 +627,7 @@ def register_interaction_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_hover_coordinate", params, result=result)
             return _text_only(result)
 
@@ -712,7 +712,7 @@ def register_interaction_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_press_at", params, result=result)
             return _text_only(result)
 
@@ -782,7 +782,7 @@ def register_interaction_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_select", params, result=result)
             return result
 
@@ -860,7 +860,7 @@ def register_interaction_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_scroll", params, result=result)
             return result
 
@@ -924,7 +924,7 @@ def register_interaction_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_drag", params, result=result)
             return result
 

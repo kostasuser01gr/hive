@@ -33,11 +33,10 @@ def register_navigation_tools(mcp: FastMCP) -> None:
         """
         Navigate a tab to a URL.
 
-        Lazy-creates a browser context if none exists (no need to call
-        ``browser_start`` first); when no ``tab_id`` is given and the
-        context was just created, navigation lands on the seed tab.
-        Prefer ``browser_open`` when you specifically want a new tab —
-        ``browser_navigate`` is for redirecting an existing tab.
+        Lazy-creates a browser context if none exists; when no ``tab_id``
+        is given and the context was just created, navigation lands on
+        the seed tab. Prefer ``browser_open`` when you specifically want
+        a new tab — ``browser_navigate`` is for redirecting an existing tab.
 
         Waits for the page to reach the ``wait_until`` condition before
         returning.
@@ -130,7 +129,7 @@ def register_navigation_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_go_back", params, result=result)
             return result
 
@@ -180,7 +179,7 @@ def register_navigation_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_go_forward", params, result=result)
             return result
 
@@ -235,7 +234,7 @@ def register_navigation_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_reload", params, result=result)
             return result
 

@@ -17,7 +17,7 @@ Use browser nodes (with `tools: {policy: "all"}`) when:
 ## Available Browser Tools
 
 All tools are prefixed with `browser_`:
-- `browser_open`, `browser_navigate` — preferred entry points; both lazy-create a browser context, so a single `browser_open(url)` covers the cold path. Use `browser_start` only to warm a profile without a URL or to recreate a context after `browser_stop`.
+- `browser_open`, `browser_navigate` — both lazy-create the browser context, so a single `browser_open(url)` covers the cold path. To recover from a stale context, call `browser_stop` then `browser_open(url)` again.
 - `browser_click`, `browser_click_coordinate`, `browser_type`, `browser_type_focused` — interact
 - `browser_press` (with optional `modifiers=["ctrl"]` etc.) — keyboard shortcuts
 - `browser_snapshot` — compact accessibility-tree read (structured)

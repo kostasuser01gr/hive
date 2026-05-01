@@ -158,7 +158,7 @@ cookie consent banners if they block content.
 - If `browser_snapshot` fails, try `browser_get_text` with a narrow
   selector as fallback.
 - If `browser_open` fails or the page seems stale, `browser_stop` →
-  `browser_start` → retry.
+  `browser_open(url)` to lazy-create a fresh context.
 
 ## `browser_evaluate`
 

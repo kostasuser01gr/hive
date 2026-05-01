@@ -41,7 +41,7 @@ def register_tools(mcp: FastMCP) -> None:
     """Register all GCU browser tools with the MCP server.
 
     Tools are organized into categories:
-    - Lifecycle: browser_start, browser_stop, browser_status
+    - Lifecycle: browser_setup, browser_status, browser_stop (browser_open lazy-creates the context)
     - Tabs: browser_tabs, browser_open, browser_close, browser_activate_tab
     - Navigation: browser_navigate, browser_go_back, browser_go_forward, browser_reload
     - Inspection: browser_screenshot, browser_snapshot, browser_console

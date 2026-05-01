@@ -410,7 +410,7 @@ In all of these cases the script is SHORT (< 10 lines) and the result is CONSUME
 - If a tool fails, retry once with the same approach.
 - If it fails a second time, STOP retrying and switch approach.
 - If `browser_snapshot` fails, try `browser_get_text` with a specific small selector as fallback.
-- If `browser_open` fails or page seems stale, `browser_stop`, then `browser_start`, then retry.
+- If `browser_open` fails or page seems stale, `browser_stop`, then `browser_open(url)` again to recreate a fresh context.
 
 ## Verified workflows
 

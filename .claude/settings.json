@@ -47,7 +47,6 @@
       "Bash(grep -v ':0$')",
       "Bash(curl -s -m 2 http://127.0.0.1:4002/sse -o /dev/null -w 'status=%{http_code} time=%{time_total}s\\\\n')",
       "mcp__gcu-tools__browser_status",
-      "mcp__gcu-tools__browser_start",
       "mcp__gcu-tools__browser_navigate",
       "mcp__gcu-tools__browser_evaluate",
       "mcp__gcu-tools__browser_screenshot",

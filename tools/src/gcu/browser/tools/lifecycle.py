@@ -61,7 +61,7 @@ async def _ensure_context(
     Lazy-creates the browser context (tab group + seed tab) the first time
     a profile is used so URL-taking tools (``browser_open`` /
     ``browser_navigate``) can be the agent's single cold-start entry
-    point instead of forcing an explicit ``browser_start`` round trip.
+    point — no separate "start" tool to remember.
 
     Caller must verify ``bridge`` is connected first; any failure in
     ``bridge.create_context`` propagates so the caller's existing
@@ -137,7 +137,7 @@ def register_lifecycle_tools(mcp: FastMCP) -> None:
             return {
                 "ok": True,
                 "connected": True,
-                "status": "Extension is connected and ready. Call browser_start to begin.",
+                "status": "Extension is connected and ready. Call browser_open(url) to begin.",
             }
 
         return {
@@ -150,7 +150,7 @@ def register_lifecycle_tools(mcp: FastMCP) -> None:
                 "step_3": "Click 'Load unpacked'",
                 "step_4": f"Select this directory: {ext_path}",
                 "step_5": ("Click the extension icon in the Chrome toolbar to confirm it says 'Connected'"),
-                "step_6": "Return here and call browser_start",
+                "step_6": "Return here and call browser_open(url) to begin",
             },
             "extensionPath": ext_path,
             "extensionPathExists": ext_exists,
@@ -237,63 +237,6 @@ def register_lifecycle_tools(mcp: FastMCP) -> None:
             duration_ms=(time.perf_counter() - start) * 1000,
         )
         return result
-
-    @mcp.tool()
-    async def browser_start(profile: str | None = None) -> dict:
-        """
-        Explicitly create a browser context (tab group) for ``profile``.
-
-        Most workflows do NOT need to call this directly: ``browser_open``
-        and ``browser_navigate`` lazy-create a context on first use, so a
-        single ``browser_open(url)`` covers the cold path. Reach for
-        ``browser_start`` when you want to (a) warm a profile without
-        opening a URL yet, or (b) recreate a context after
-        ``browser_stop`` to clear stale state.
-
-        No separate browser process is launched — uses the user's
-        existing Chrome via the Beeline extension.
-
-        Args:
-            profile: Browser profile name (default: "default")
-
-        Returns:
-            Dict with start status (``"started"`` on fresh creation,
-            ``"already_running"`` when a context for the profile exists),
-            including ``groupId`` and ``activeTabId``.
-        """
-        start = time.perf_counter()
-        params = {"profile": profile}
-
-        bridge = get_bridge()
-        if not bridge or not bridge.is_connected:
-            result = {
-                "ok": False,
-                "error": ("Browser extension not connected. Call browser_setup for installation instructions."),
-            }
-            log_tool_call("browser_start", params, result=result)
-            return result
-
-        try:
-            profile_name, ctx, created = await _ensure_context(bridge, profile)
-            result = {
-                "ok": True,
-                "status": "started" if created else "already_running",
-                "profile": profile_name,
-                "groupId": ctx.get("groupId"),
-                "activeTabId": ctx.get("activeTabId"),
-            }
-            log_tool_call(
-                "browser_start",
-                params,
-                result=result,
-                duration_ms=(time.perf_counter() - start) * 1000,
-            )
-            return result
-        except Exception as e:
-            logger.exception("Failed to start browser context")
-            result = {"ok": False, "error": str(e)}
-            log_tool_call("browser_start", params, error=e, duration_ms=(time.perf_counter() - start) * 1000)
-            return result
 
     @mcp.tool()
     async def browser_stop(profile: str | None = None) -> dict:

@@ -65,7 +65,7 @@ def register_tab_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_tabs", params, result=result)
             return result
 
@@ -100,12 +100,12 @@ def register_tab_tools(mcp: FastMCP) -> None:
         """
         Open a browser tab at the given URL — preferred entry point.
 
-        This is the agent's primary "go to a page" tool. If no browser
-        context exists yet for the profile, one is created transparently
-        (no need to call ``browser_start`` first). The first call after
-        a fresh context reuses the seed ``about:blank`` tab; subsequent
-        calls open new tabs in the agent's tab group. Waits for the
-        page to load before returning.
+        This is the agent's primary "go to a page" tool and the cold-start
+        entry point — if no browser context exists yet for the profile,
+        one is created transparently. The first call after a fresh
+        context reuses the seed ``about:blank`` tab; subsequent calls
+        open new tabs in the agent's tab group. Waits for the page to
+        load before returning.
 
         Args:
             url: URL to navigate to
@@ -192,7 +192,7 @@ def register_tab_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_close", params, result=result)
             return result
 
@@ -271,7 +271,7 @@ def register_tab_tools(mcp: FastMCP) -> None:
 
         ctx = _get_context(profile)
         if not ctx:
-            result = {"ok": False, "error": "Browser not started. Call browser_start first."}
+            result = {"ok": False, "error": "Browser not started. Call browser_open(url) first to open a tab."}
             log_tool_call("browser_activate_tab", params, result=result)
             return result
 

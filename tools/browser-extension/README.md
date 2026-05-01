@@ -61,7 +61,7 @@ All replies carry `{ id, result }` or `{ id, error }`.
 # 1. At GCU server startup, open ws://localhost:9229/beeline and wait for
 #    the extension to connect (sends { type: "hello" }).
 #
-# 2. On browser_start(profile):
+# 2. On the first browser tool call for a profile (lazy-start via _ensure_context):
 #    - Send { id, type: "context.create", agentId: profile }
 #    - Receive { groupId, tabId }
 #    - Store groupId in the session object (no Chrome process, no CDP port)
