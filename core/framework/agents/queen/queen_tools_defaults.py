@@ -169,14 +169,16 @@ _TOOL_CATEGORIES: dict[str, list[str]] = {
 # user-added custom queen IDs that we don't know about.
 
 QUEEN_DEFAULT_CATEGORIES: dict[str, list[str]] = {
-    # Head of Technology — builds and operates systems; full toolkit.
+    # Head of Technology — builds and operates systems. Security tools
+    # (port_scan, subdomain_enumerate, etc.) are intentionally NOT in the
+    # default — users opt in via the Tool Library when an engagement
+    # actually needs reconnaissance.
     "queen_technology": [
         "file_ops",
         "terminal_basic",
         "browser_basic",
         "browser_interaction",
         "research",
-        "security",
         "time_context",
     ],
     # Head of Growth — data, experiments, competitor research; no security.
@@ -251,6 +253,49 @@ QUEEN_DEFAULT_CATEGORIES: dict[str, list[str]] = {
 def has_role_default(queen_id: str) -> bool:
     """Return True when ``queen_id`` is known to the category table."""
     return queen_id in QUEEN_DEFAULT_CATEGORIES
+
+
+def list_category_names() -> list[str]:
+    """Return every category name defined in the table, in declaration order."""
+    return list(_TOOL_CATEGORIES.keys())
+
+
+def queen_role_categories(queen_id: str) -> list[str]:
+    """Return the category names assigned to ``queen_id`` by role default.
+
+    Returns an empty list for queens not in the persona table (they fall
+    through to allow-all and have no implicit category membership).
+    """
+    return list(QUEEN_DEFAULT_CATEGORIES.get(queen_id, []))
+
+
+def resolve_category_tools(
+    category: str,
+    mcp_catalog: dict[str, list[dict[str, Any]]] | None = None,
+) -> list[str]:
+    """Expand a single category to its concrete tool names.
+
+    Mirrors ``resolve_queen_default_tools`` but for a single category, so
+    callers (e.g. the Tool Library API) can present per-category tool
+    membership without re-implementing the ``@server:NAME`` shorthand
+    expansion.
+    """
+    names: list[str] = []
+    seen: set[str] = set()
+    for entry in _TOOL_CATEGORIES.get(category, []):
+        if entry.startswith("@server:"):
+            server_name = entry[len("@server:") :]
+            if mcp_catalog is None:
+                continue
+            for tool in mcp_catalog.get(server_name, []) or []:
+                tname = tool.get("name") if isinstance(tool, dict) else None
+                if tname and tname not in seen:
+                    seen.add(tname)
+                    names.append(tname)
+        elif entry not in seen:
+            seen.add(entry)
+            names.append(entry)
+    return names
 
 
 def resolve_queen_default_tools(

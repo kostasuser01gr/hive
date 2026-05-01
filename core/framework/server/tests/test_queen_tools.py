@@ -217,6 +217,41 @@ async def test_get_tools_applies_role_default(queen_dir, monkeypatch):
     assert "fluffy_unknown_tool" not in enabled
 
 
+@pytest.mark.asyncio
+async def test_get_tools_exposes_categories(queen_dir, monkeypatch):
+    """Response includes the category catalog with role-default flags."""
+    monkeypatch.setattr(routes_queen_tools, "ensure_default_queens", lambda: None)
+    _, queen_id = queen_dir  # queen_technology
+
+    manager = _FakeManager()
+    manager._mcp_tool_catalog = {
+        "files-tools": [
+            {"name": "read_file", "description": "", "input_schema": {}},
+            {"name": "edit_file", "description": "", "input_schema": {}},
+        ],
+    }
+
+    app = await _make_app(manager=manager)
+    async with TestClient(TestServer(app)) as client:
+        resp = await client.get(f"/api/queen/{queen_id}/tools")
+        assert resp.status == 200
+        body = await resp.json()
+
+    cats = {c["name"]: c for c in body["categories"]}
+    # Categories that contribute to queen_technology's role default
+    assert cats["file_ops"]["in_role_default"] is True
+    assert cats["browser_basic"]["in_role_default"] is True
+    # Spreadsheet category is exposed even though queen_technology doesn't
+    # use it — frontend can group/show it.
+    assert "spreadsheet_advanced" in cats
+    assert cats["spreadsheet_advanced"]["in_role_default"] is False
+    # Security was removed from queen_technology defaults.
+    assert cats["security"]["in_role_default"] is False
+    # @server:files-tools shorthand expanded against the catalog.
+    assert "read_file" in cats["file_ops"]["tools"]
+    assert "edit_file" in cats["file_ops"]["tools"]
+
+
 def test_resolve_queen_default_tools_expands_server_shorthand():
     """@server:NAME shorthand expands against the provided catalog."""
     from framework.agents.queen.queen_tools_defaults import resolve_queen_default_tools
@@ -379,7 +414,10 @@ async def test_delete_restores_role_default(queen_dir, monkeypatch):
     manager._mcp_tool_catalog = {
         "files-tools": [
             {"name": "read_file", "description": "", "input_schema": {}},
-            {"name": "port_scan", "description": "", "input_schema": {}},
+            # pdf_read lives in hive_tools but is named explicitly in the
+            # file_ops category, so we stage it in any server here just to
+            # surface it through the catalog.
+            {"name": "pdf_read", "description": "", "input_schema": {}},
         ],
     }
 
@@ -400,11 +438,14 @@ async def test_delete_restores_role_default(queen_dir, monkeypatch):
         assert body["is_role_default"] is True
         assert not tools_path.exists()
 
-        # The new effective list is the role default for queen_technology,
-        # which includes both read_file (file_read) and port_scan (security).
+        # The new effective list is the role default for queen_technology;
+        # security tools were intentionally removed, so port_scan must NOT
+        # appear, while file_ops members like read_file/pdf_read do.
         enabled = set(body["enabled_mcp_tools"] or [])
         assert "read_file" in enabled
-        assert "port_scan" in enabled
+        assert "pdf_read" in enabled
+        assert "port_scan" not in enabled
+        assert "subdomain_enumerate" not in enabled
 
         # GET confirms.
         resp = await client.get(f"/api/queen/{queen_id}/tools")

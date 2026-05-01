@@ -35,6 +35,11 @@ from framework.agents.queen.queen_tools_config import (
     tools_config_exists,
     update_queen_tools_config,
 )
+from framework.agents.queen.queen_tools_defaults import (
+    list_category_names,
+    queen_role_categories,
+    resolve_category_tools,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -326,8 +331,34 @@ async def handle_get_tools(request: web.Request) -> web.Response:
             mcp_tool_names_by_server=catalog,
             enabled_mcp_tools=enabled_mcp_tools,
         ),
+        "categories": _render_categories(queen_id, catalog),
     }
     return web.json_response(response)
+
+
+def _render_categories(
+    queen_id: str,
+    mcp_catalog: dict[str, list[dict[str, Any]]],
+) -> list[dict[str, Any]]:
+    """Expose the role-default category table to the frontend.
+
+    Each entry carries the category name, the resolved member tool names
+    (after ``@server:NAME`` shorthand expansion against the live catalog),
+    and ``in_role_default`` to flag categories that contribute to this
+    queen's role-based default. Lets the Tool Library group tools by
+    category alongside the per-server view.
+    """
+    applied = set(queen_role_categories(queen_id))
+    out: list[dict[str, Any]] = []
+    for name in list_category_names():
+        out.append(
+            {
+                "name": name,
+                "tools": resolve_category_tools(name, mcp_catalog),
+                "in_role_default": name in applied,
+            }
+        )
+    return out
 
 
 async def handle_patch_tools(request: web.Request) -> web.Response:

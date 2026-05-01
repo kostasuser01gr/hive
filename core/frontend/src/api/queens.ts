@@ -28,6 +28,16 @@ export interface McpServerTools {
   tools: Array<ToolMeta & { enabled: boolean }>;
 }
 
+export interface ToolCategory {
+  /** Category id (e.g. "spreadsheet_advanced", "browser_basic"). */
+  name: string;
+  /** Concrete tool names that belong to this category, after expansion
+   * of any ``@server:NAME`` shorthands against the live MCP catalog. */
+  tools: string[];
+  /** True when this category contributes to the queen's role-based default. */
+  in_role_default: boolean;
+}
+
 export interface QueenToolsResponse {
   queen_id: string;
   enabled_mcp_tools: string[] | null;
@@ -39,6 +49,10 @@ export interface QueenToolsResponse {
   lifecycle: ToolMeta[];
   synthetic: ToolMeta[];
   mcp_servers: McpServerTools[];
+  /** Curated category groupings (file_ops, browser_basic, security, …)
+   * with resolved tool members. ``in_role_default`` flags categories
+   * baked into this queen's default allowlist. */
+  categories: ToolCategory[];
 }
 
 export interface QueenToolsUpdateResult {
