@@ -131,10 +131,8 @@ _TOOL_CATEGORIES: dict[str, list[str]] = {
     # browser_basic for richer site-by-site research; this category is the
     # lightweight always-available fallback.
     "research": [
-        "search_papers",
-        "download_paper",
-        "search_wikipedia",
         "web_scrape",
+        "pdf_read"
     ],
     # Security — defensive scanning and reconnaissance. Engineering-only
     # surface; the rest of the queens shouldn't see port scanners.
@@ -244,7 +242,6 @@ QUEEN_DEFAULT_CATEGORIES: dict[str, list[str]] = {
         "spreadsheet_advanced",
         "browser_basic",
         "browser_interaction",
-        "research",
         "time_context",
     ],
 }
