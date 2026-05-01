@@ -119,15 +119,15 @@ def build_theme(theme: str = "light") -> dict:
             "axisTick": {"show": False},
             "axisLabel": {"color": fg_muted, "fontSize": 11, "margin": 14},
             "splitLine": {"lineStyle": {"color": grid_line, "type": "dashed"}},
-            # Y-axis name vertically-centered on the axis instead of
-            # floating in the upper-left corner where it competes with
-            # the title and legend.
             "nameLocation": "middle",
             "nameGap": 44,
             "nameTextStyle": {"color": fg_muted, "fontSize": 12, "fontWeight": 500},
-            "nameRotate": 90,
+            # Don't auto-rotate value-axis names — the theme can't tell
+            # xAxis (horizontal-bar) from yAxis (vertical-bar). Rotating
+            # both at 90° vertical-mounts the xAxis name on horizontal-
+            # bar charts and it collides with the legend (peer_val
+            # regression). Specs set nameRotate explicitly when needed.
         },
-        # Same for log/time/etc. — keep the look consistent.
         "logAxis": {
             "axisLine": {"show": False},
             "axisLabel": {"color": fg_muted, "fontSize": 11},
@@ -135,7 +135,6 @@ def build_theme(theme: str = "light") -> dict:
             "nameLocation": "middle",
             "nameGap": 44,
             "nameTextStyle": {"color": fg_muted, "fontSize": 12, "fontWeight": 500},
-            "nameRotate": 90,
         },
         "timeAxis": {
             "axisLine": {"show": True, "lineStyle": {"color": axis_line}},

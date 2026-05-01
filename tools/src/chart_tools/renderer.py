@@ -274,38 +274,58 @@ async def _render_in_page(
                 // points are gone" bug). We don't need animation in
                 // a static PNG anyway.
                 //
-                // Force layout positions for title/legend/grid so the
-                // agent's spec can't collide with itself. Specifically:
-                // when the agent writes legend.top: "8%" assuming title
-                // is at top:0, but our theme puts title at top:28, the
-                // legend lands INSIDE the title (the 2026-05-01 overlap
-                // bug). We strip user-provided top values and compute
-                // based on whether title has subtext + legend exists.
-                // User's other fields (text, data, formatter, etc.)
-                // still win.
+                // Disjoint-region layout policy. ECharts has no auto-
+                // layout for component overlap (verified against the
+                // option reference): title/legend/grid are absolutely
+                // positioned and ignore each other. We enforce three
+                // non-overlapping regions:
+                //   - Title: anchored to TOP (top:16, no bottom)
+                //   - Legend: anchored to BOTTOM (bottom:16, no top)
+                //     except when orient:'vertical' (side legend)
+                //   - Grid: middle, with containLabel for axis labels
+                // Strips user-supplied vertical positions so an agent
+                // spec like `legend.top:"8%"` (which lands inside the
+                // title at chat-bubble dimensions — the 2026-05-01
+                // bug) can't collide. Horizontal anchoring (left/right)
+                // is preserved so e.g. left-aligned legends still work.
+                // Other fields (text, data, formatter, etc.) win as
+                // normal via Object.assign middle position.
                 const userTitle = option.title || {};
                 const userLegend = option.legend;
                 const userGrid = option.grid || {};
-                const hasSubtext = !!(userTitle.subtext || userTitle.subtextStyle);
-                const titleTop = 20;
-                const legendTop = hasSubtext ? 72 : 56;
-                const gridTop = userLegend ? (hasSubtext ? 116 : 100)
-                                           : (hasSubtext ? 80 : 64);
+                const legendVertical = userLegend && userLegend.orient === 'vertical';
+                const stripV = (o) => {
+                  const c = Object.assign({}, o);
+                  delete c.top; delete c.bottom; return c;
+                };
                 const sanitized = Object.assign({}, option, {
                   animation: false,
                   animationDuration: 0,
                   animationDurationUpdate: 0,
                   animationEasing: 'linear',
                   animationEasingUpdate: 'linear',
-                  title: Object.assign({left: 'center'}, userTitle, {top: titleTop}),
-                  grid: Object.assign({
-                    left: 56, right: 56, bottom: 56, containLabel: true,
-                  }, userGrid, {top: gridTop}),
+                  title: Object.assign({left: 'center'}, stripV(userTitle), {top: 16}),
+                  grid: Object.assign({left: 56, right: 56}, stripV(userGrid), {
+                    // Force vertical bounds — user-supplied grid.top /
+                    // grid.bottom (often percentage strings like "8%"
+                    // that the agent picks at default dimensions) don't
+                    // generalize across chat-bubble sizes. Bottom must
+                    // clear bottom-anchored legend (~36px) plus xAxis
+                    // name (containLabel handles tick labels but NOT
+                    // axis names; that's outerBoundsMode in v6+, we're
+                    // on v5). 96 with legend, 40 without.
+                    top: 64,
+                    bottom: userLegend && !legendVertical ? 96 : 40,
+                    containLabel: true,
+                  }),
                 });
                 if (userLegend) {
-                  sanitized.legend = Object.assign({
+                  const legendDefaults = {
                     icon: 'roundRect', itemWidth: 12, itemHeight: 12, itemGap: 16,
-                  }, userLegend, {top: legendTop});
+                  };
+                  sanitized.legend = legendVertical
+                    ? Object.assign(legendDefaults, userLegend)
+                    : Object.assign(legendDefaults, stripV(userLegend), {bottom: 16});
                 }
 
                 // Signal "render complete" via window.__chartReady so
