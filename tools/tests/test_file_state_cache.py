@@ -46,15 +46,7 @@ def sandbox(tmp_path: Path):
 def tools(sandbox: Path):
     """Register file_ops onto a fresh FastMCP and return the tool callables."""
     mcp = FastMCP("test-server")
-
-    def resolve(path: str) -> str:
-        # Absolute paths under the sandbox are fine; relative paths
-        # resolve against the sandbox root.
-        if os.path.isabs(path):
-            return os.path.abspath(path)
-        return str(sandbox / path)
-
-    register_file_tools(mcp, resolve_path=resolve)
+    register_file_tools(mcp, home=str(sandbox))
 
     return {
         "read_file": _find_tool(mcp, "read_file"),

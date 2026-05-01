@@ -38,27 +38,20 @@ logger = logging.getLogger(__name__)
 _TOOL_CATEGORIES: dict[str, list[str]] = {
     # Read-only file operations — safe baseline for every knowledge queen.
     # search_files is unified: covers content grep AND directory listing
-    # via target='content' / target='files'. It replaces list_directory,
-    # list_dir, and list_files.
+    # via target='content' / target='files'.
     "file_read": [
         "read_file",
         "search_files",
-        "grep_search",
         "pdf_read",
     ],
     # File mutation — only personas that author or edit artifacts.
     "file_write": [
         "write_file",
         "edit_file",
-        "apply_diff",
-        "apply_patch",
-        "replace_file_content",
         "hashline_edit",
-        "undo_changes",
     ],
     # Shell + process control — engineering personas only.
     "shell": [
-        "run_command",
         "execute_command_tool",
         "bash_kill",
         "bash_output",
@@ -85,24 +78,10 @@ _TOOL_CATEGORIES: dict[str, list[str]] = {
         "get_current_time",
         "get_account_info",
     ],
-    # Runtime log inspection — debug/observability for builder personas.
-    "runtime_inspection": [
-        "query_runtime_logs",
-        "query_runtime_log_details",
-        "query_runtime_log_raw",
-    ],
     # Agent-management tools — building/validating/checking agents.
     "agent_mgmt": [
-        "list_agents",
-        "list_agent_tools",
-        "list_agent_sessions",
-        "get_agent_checkpoint",
-        "list_agent_checkpoints",
-        "run_agent_tests",
         "save_agent_draft",
         "confirm_and_build",
-        "validate_agent_package",
-        "validate_agent_tools",
         "enqueue_task",
     ],
 }
@@ -132,7 +111,6 @@ QUEEN_DEFAULT_CATEGORIES: dict[str, list[str]] = {
         "research",
         "security",
         "time_context",
-        "runtime_inspection",
         "agent_mgmt",
     ],
     # Head of Growth — data, experiments, competitor research; no shell/security.
@@ -195,7 +173,6 @@ QUEEN_DEFAULT_CATEGORIES: dict[str, list[str]] = {
         "browser",
         "research",
         "time_context",
-        "runtime_inspection",
         "agent_mgmt",
     ],
 }

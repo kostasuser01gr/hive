@@ -543,7 +543,7 @@ async def create_queen(
     phase_state.incubating_tools = [t for t in queen_tools if t.name in incubating_names]
 
     # Independent phase gets core tools + all MCP tools not claimed by any
-    # other phase (coder-tools file I/O, gcu-tools browser, etc.).
+    # other phase (files-tools file I/O, gcu-tools browser, etc.).
     all_phase_names = independent_names | incubating_names | working_names | reviewing_names
     mcp_tools = [t for t in queen_tools if t.name not in all_phase_names]
     phase_state.independent_tools = [t for t in queen_tools if t.name in independent_names] + mcp_tools

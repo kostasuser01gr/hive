@@ -40,17 +40,13 @@ def tools(tmp_path):
     mcp = FastMCP("test-server")
     write_calls = []
 
-    def _resolve(p):
-        return str(tmp_path / p)
-
     def _before_write():
         write_calls.append(1)
 
     register_file_tools(
         mcp,
-        resolve_path=_resolve,
+        home=str(tmp_path),
         before_write=_before_write,
-        project_root=str(tmp_path),
     )
     tool_map = {name: t.fn for name, t in mcp._tool_manager._tools.items()}
     return tool_map, write_calls

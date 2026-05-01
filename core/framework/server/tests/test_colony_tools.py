@@ -131,7 +131,7 @@ async def test_get_tools_default_allow(colony_dir):
     _, name = colony_dir
     manager = _FakeManager(
         _mcp_tool_catalog={
-            "coder-tools": [
+            "files-tools": [
                 {"name": "read_file", "description": "read", "input_schema": {}},
                 {"name": "write_file", "description": "write", "input_schema": {}},
             ],
@@ -153,7 +153,7 @@ async def test_patch_persists_and_validates(colony_dir):
     colonies_dir, name = colony_dir
     manager = _FakeManager(
         _mcp_tool_catalog={
-            "coder-tools": [
+            "files-tools": [
                 {"name": "read_file", "description": "", "input_schema": {}},
                 {"name": "write_file", "description": "", "input_schema": {}},
             ]
@@ -201,7 +201,7 @@ async def test_patch_refreshes_live_runtime(colony_dir):
     manager = _FakeManager(
         _sessions={session.id: session},
         _mcp_tool_catalog={
-            "coder-tools": [
+            "files-tools": [
                 {"name": "read_file", "description": "", "input_schema": {}},
                 {"name": "write_file", "description": "", "input_schema": {}},
             ]

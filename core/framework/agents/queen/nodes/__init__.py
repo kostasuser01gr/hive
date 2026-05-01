@@ -32,7 +32,7 @@ def finalize_queen_prompt(text: str, has_vision: bool) -> str:
 # ---------------------------------------------------------------------------
 
 # Independent phase: queen operates as a standalone agent — no worker.
-# Core tools are listed here; MCP tools (coder-tools, gcu-tools) are added
+# Core tools are listed here; MCP tools (files-tools, gcu-tools) are added
 # dynamically in queen_orchestrator.py because their tool names aren't known
 # at import time.
 _QUEEN_INDEPENDENT_TOOLS = [
@@ -42,8 +42,6 @@ _QUEEN_INDEPENDENT_TOOLS = [
     "edit_file",
     "hashline_edit",
     "search_files",
-    "run_command",
-    "undo_changes",
     # NOTE (2026-04-16): ``run_parallel_workers`` is not in the DM phase.
     # Pure DM is for conversation with the user; fan out parallel work via
     # ``start_incubating_colony`` (which gates the colony fork behind a
@@ -60,7 +58,6 @@ _QUEEN_INDEPENDENT_TOOLS = [
 _QUEEN_INCUBATING_TOOLS = [
     "read_file",
     "search_files",
-    "run_command",
     # Schedule lives on the colony, not on the queen session — pass it
     # inline as create_colony(triggers=[...]) instead of staging through
     # set_trigger here.
@@ -75,7 +72,6 @@ _QUEEN_WORKING_TOOLS = [
     # Read-only
     "read_file",
     "search_files",
-    "run_command",
     # Monitoring + worker dialogue
     "get_worker_status",
     "inject_message",
@@ -93,7 +89,6 @@ _QUEEN_REVIEWING_TOOLS = [
     # Read-only
     "read_file",
     "search_files",
-    "run_command",
     # Status + escalation replies
     "get_worker_status",
     "list_worker_questions",
@@ -129,8 +124,8 @@ phase. Your identity tells you WHO you are.
 
 _queen_role_independent = """\
 You are in INDEPENDENT mode. \
-You have full coding tools (read/write/edit/search/run) and MCP tools \
-(file operations via coder-tools, browser automation via gcu-tools). \
+You have full coding tools (read/write/edit/search) and MCP tools \
+(file operations via files-tools, browser automation via gcu-tools). \
 Execute the user's task directly using planning, conversation and tools.
 If you need a structured choice or approval gate, always use \
 ``ask_user``; otherwise ask in plain prose. ``ask_user`` takes a \
@@ -244,9 +239,8 @@ re-read state.
 
 See "Independent execution" for the per-step flow and granularity rule.
 
-## File I/O (coder-tools MCP)
-- read_file, write_file, edit_file, hashline_edit, search_files, \
-run_command, undo_changes
+## File I/O (files-tools MCP)
+- read_file, write_file, edit_file, hashline_edit, search_files
   - search_files covers grep/find/ls in one tool: target='content' to \
 search inside files, target='files' (with a glob like '*.py') to list \
 or find files. Mtime-sorted in files mode.
@@ -275,8 +269,8 @@ You've been approved to fork. The full coding toolkit is gone on \
 purpose — your job in this phase is to nail the spec, not keep doing \
 work. Available:
 
-## Read-only inspection (coder-tools MCP)
-- read_file, search_files, run_command — for confirming details before \
+## Read-only inspection (files-tools MCP)
+- read_file, search_files — for confirming details before \
 you commit (e.g. peek at an existing skill in ~/.hive/skills/, sanity-check \
 an API URL). search_files covers both grep (target='content') and ls/find \
 (target='files', glob like '*.py').
@@ -373,7 +367,7 @@ operational, not editorial.
   born from a fresh chat via start_incubating_colony.
 
 ## Read-only inspection
-- read_file, search_files, run_command (search_files covers grep/find/ls \
+- read_file, search_files (search_files covers grep/find/ls \
 via target='content' or target='files')
 
 When every worker has reported (success or failure), the phase \
@@ -393,7 +387,7 @@ _queen_tools_reviewing = """
 # Tools (REVIEWING mode)
 
 Workers have finished. You have:
-- Read-only: read_file, search_files, run_command (search_files = grep+find+ls)
+- Read-only: read_file, search_files (search_files = grep+find+ls)
 - get_worker_status(focus?) — Pull the final status / per-worker reports
 - list_worker_questions() / reply_to_worker(request_id, reply) — Answer any \
 late escalations still in the inbox

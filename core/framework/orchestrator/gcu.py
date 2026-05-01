@@ -140,8 +140,9 @@ shortcut dispatcher requires both), then releases in reverse order.
 ## Tab management
 
 Close tabs as soon as you're done with them — not only at the end of
-the task. `browser_close(target_id=...)` for one, `browser_close_finished()`
-for a full cleanup. Never accumulate more than 3 open tabs.
+the task. Use `browser_close(tab_id=...)` (or no arg to close the
+active tab); call it for each tab when cleaning up after a multi-tab
+workflow. Never accumulate more than 3 open tabs.
 `browser_tabs` reports an `origin` field: `"agent"` (you own it, close
 when done), `"popup"` (close after extracting), `"startup"`/`"user"`
 (leave alone).

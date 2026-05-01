@@ -27,7 +27,7 @@ All tools are prefixed with `browser_`:
 - `browser_shadow_query`, `browser_get_rect` — locate elements (shadow-piercing via `>>>`)
 - `browser_scroll`, `browser_wait` — navigation helpers
 - `browser_evaluate` — run JavaScript
-- `browser_close`, `browser_close_finished` — tab cleanup
+- `browser_close` — tab cleanup (call per tab; closes the active tab when `tab_id` is omitted)
 
 ## Pick the right reading tool
 

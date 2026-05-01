@@ -1,10 +1,10 @@
 {
-  "coder-tools": {
+  "files-tools": {
     "transport": "stdio",
     "command": "uv",
-    "args": ["run", "python", "coder_tools_server.py", "--stdio"],
+    "args": ["run", "python", "files_server.py", "--stdio"],
     "cwd": "../../../../tools",
-    "description": "Unsandboxed file system tools for code generation and validation"
+    "description": "File system tools (read/write/edit/search) for code generation"
   },
   "gcu-tools": {
     "transport": "stdio",

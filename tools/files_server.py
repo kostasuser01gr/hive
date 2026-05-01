@@ -82,9 +82,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if not args.stdio:
-        logger.info(
-            "Registered 5 file tools: read_file, write_file, edit_file, hashline_edit, search_files"
-        )
+        logger.info("Registered 5 file tools: read_file, write_file, edit_file, hashline_edit, search_files")
 
     if args.stdio:
         mcp.run(transport="stdio")

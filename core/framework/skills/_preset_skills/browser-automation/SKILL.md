@@ -244,8 +244,8 @@ The highlight overlay stays visible on the page for **10 seconds** after each in
 
 **Close tabs as soon as you are done with them** — not only at the end of the task. After reading or extracting data from a tab, close it immediately.
 
-- Finished reading/extracting from a tab? `browser_close(target_id=...)`
-- Completed a multi-tab workflow? `browser_close_finished()` to clean up all your tabs
+- Finished reading/extracting from a tab? `browser_close(tab_id=...)` (or no arg to close the active tab)
+- Completed a multi-tab workflow? Call `browser_close` for each tab you opened — list with `browser_tabs` first if you've lost track of IDs
 - More than 3 tabs open? Stop and close finished ones before opening more
 - Popup appeared that you didn't need? Close it immediately
 

@@ -132,7 +132,7 @@ async def test_list_servers_returns_built_in(registry):
     assert "built-in-seed" in names
     sources = {s["name"]: s["source"] for s in body["servers"]}
     assert sources.get("built-in-seed") == "registry"
-    # The package-baked servers (coder-tools/gcu-tools/hive_tools) carry
+    # The package-baked servers (files-tools/gcu-tools/hive_tools) carry
     # source=="built-in" and are non-removable.
     pkg_entries = [s for s in body["servers"] if s["source"] == "built-in"]
     assert pkg_entries, "expected at least one package-baked MCP server"

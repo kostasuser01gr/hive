@@ -37,12 +37,12 @@ COMPACTABLE_TOOLS: frozenset[str] = frozenset(
         "run_command",
         "web_search",
         "web_fetch",
-        "grep_search",
-        "glob_search",
+        "search_files",
         "write_file",
         "edit_file",
+        "apply_patch",
+        "hashline_edit",
         "browser_screenshot",
-        "search_files",
     }
 )
 

@@ -7,8 +7,8 @@ it covers both content grep (``target='content'``) and file listing
 (``target='files'``), replacing the older ``list_directory`` tool and
 the LLM's choice between grep/find/ls.
 
-Used by both files_server.py (unsandboxed) and coder_tools_server.py
-(project-root sandboxed with git snapshots).
+Used by files_server.py (the MCP entry point that exposes these tools
+to the queen and any other agent loading the files-tools server).
 
 Usage:
     from aden_tools.file_ops import register_file_tools
@@ -29,8 +29,8 @@ import re
 import subprocess
 import sys
 import tempfile
+import threading as _threading
 from collections.abc import Callable
-from contextvars import ContextVar
 from pathlib import Path
 
 from fastmcp import FastMCP
@@ -117,18 +117,15 @@ BINARY_EXTENSIONS = frozenset(
 # Process-level memory of the most recent search_files call per task. When
 # the same query (target+pattern+path+glob+pagination+output) is repeated
 # back-to-back, we warn the model on the 3rd hit and block on the 4th.
-# Mirrors the Hermes design — see scripts/hermes_search_files.md.
-
-import threading as _threading
+# Catches LLM loops where the same search is fired without acting on the
+# previous result.
 
 _SEARCH_TRACKER_LOCK = _threading.Lock()
 _SEARCH_TRACKER: dict[str, dict] = {}
 
 # Skip set shared by both search targets — common build/cache dirs that are
 # almost never what the model wants to walk.
-_SEARCH_SKIP_DIRS = frozenset(
-    {".git", "__pycache__", "node_modules", ".venv", ".tox", ".mypy_cache", ".ruff_cache"}
-)
+_SEARCH_SKIP_DIRS = frozenset({".git", "__pycache__", "node_modules", ".venv", ".tox", ".mypy_cache", ".ruff_cache"})
 
 
 def _relativize(path: str, root: str | None) -> str:
@@ -391,91 +388,171 @@ def _do_search_content_target(
     return out
 
 
-# ── Context-aware sandboxing ─────────────────────────────────────────────────
+# ── Path policy ──────────────────────────────────────────────────────────
+#
+# One model for every file tool:
+#
+#   - Relative path  → resolved under the agent's home directory.
+#   - Absolute path  → used as-is, no silent rebasing.
+#   - Tilde (~)      → expanded to the OS user home.
+#
+# Two deny lists. Reads ⊂ writes:
+#
+#   - Reads are blocked only for credential FILES (SSH keys, AWS creds,
+#     /etc/shadow, etc.). System config like /etc/nginx/nginx.conf is
+#     readable on purpose — agents need to inspect configs.
+#   - Writes are blocked for system directories AND credential paths.
+#
+# An optional ``write_safe_root`` is a hard ceiling on writes for hosted
+# deployments. Reads are not affected by it.
 
-# Context variable for additional allowed paths (beyond base_root)
-_EMPTY_PATHS: list[str] = []
-_allowed_paths_ctx: ContextVar[list[str]] = ContextVar("allowed_paths", default=_EMPTY_PATHS)
+_HOME = os.path.expanduser("~")
 
 
-def set_allowed_paths(paths: list[str]) -> None:
-    """Set additional allowed paths for file operations in this context.
+def _norm(p: str) -> str:
+    """Resolve ``~`` and symlinks; return canonical absolute path."""
+    return os.path.realpath(os.path.expanduser(p))
 
-    Use this to grant access to paths beyond the base root (e.g., ~/.hive/
-    for cross-agent file access).
+
+# Anything under one of these prefixes is denied for writes.
+#
+# Notes on what's intentionally NOT here:
+#   - /var, /private/var: macOS user tmpdirs live under /private/var/folders/,
+#     so denying that prefix breaks every test using tmp_path. Sensitive
+#     items under /var (sudoers.d, etc.) are listed individually below.
+#   - /var/run: docker.sock is in the exact-files list, which is enough.
+_WRITE_DENY_PREFIXES: tuple[str, ...] = tuple(
+    _norm(p)
+    for p in (
+        "/etc",
+        "/boot",
+        "/usr/lib/systemd",
+        "/private/etc",
+        "/etc/sudoers.d",
+        "/etc/systemd",
+        "~/.ssh",
+        "~/.aws",
+        "~/.gnupg",
+        "~/.kube",
+        "~/.docker",
+        "~/.azure",
+        "~/.config/gh",
+    )
+)
+
+# Exact files denied for writes (in addition to the prefix list).
+_WRITE_DENY_FILES: frozenset[str] = frozenset(
+    _norm(p)
+    for p in (
+        "/etc/sudoers",
+        "/etc/passwd",
+        "/etc/shadow",
+        "/var/run/docker.sock",
+        "/run/docker.sock",
+        "~/.netrc",
+        "~/.pypirc",
+    )
+)
+
+# Reads are denied only for credential FILES — system dirs stay readable.
+_READ_DENY_PREFIXES: tuple[str, ...] = tuple(
+    _norm(p)
+    for p in (
+        "~/.ssh",
+        "~/.aws",
+        "~/.gnupg",
+    )
+)
+_READ_DENY_FILES: frozenset[str] = frozenset(
+    _norm(p)
+    for p in (
+        "/etc/shadow",
+        "/etc/sudoers",
+        "~/.netrc",
+        "~/.pypirc",
+    )
+)
+
+
+def _path_is_under(path: str, root: str) -> bool:
+    """True iff ``path`` equals or sits under ``root`` (both absolute)."""
+    if not root:
+        return False
+    try:
+        return os.path.commonpath([path, root]) == root
+    except ValueError:
+        return False  # different drives on Windows
+
+
+class _FilePolicy:
+    """Path resolver and deny-list checker bound to an agent's home dir.
+
+    One instance per ``register_file_tools`` call. All file tools route
+    their path arg through ``read_path`` or ``write_path`` so the same
+    rules apply across read_file/write_file/edit_file/search_files/etc.
     """
-    _allowed_paths_ctx.set(list(paths))
 
-
-def get_allowed_paths() -> list[str]:
-    """Get current allowed paths including ~/.hive/."""
-    paths = list(_allowed_paths_ctx.get())
-    hive_dir = os.path.expanduser("~/.hive")
-    if hive_dir not in paths:
-        paths.append(hive_dir)
-    return paths
-
-
-def create_sandboxed_resolver(
-    base_root: str,
-    allowed_paths: list[str] | None = None,
-) -> Callable[[str], str]:
-    """Create a path resolver that enforces sandbox boundaries.
-
-    Args:
-        base_root: The primary allowed directory (e.g., PROJECT_ROOT or data_dir).
-        allowed_paths: Additional allowed paths. If None, uses get_allowed_paths()
-            which includes ~/.hive/ by default.
-
-    Returns:
-        A path resolver function that raises ValueError for paths outside allowed scopes.
-
-    The resolver:
-    - Resolves relative paths against base_root
-    - Allows absolute paths under base_root or any allowed_path
-    - Blocks access outside allowed scopes with a helpful error message
-    """
-    hive_dir = os.path.expanduser("~/.hive")  # noqa: F841
-
-    def resolve(path: str) -> str:
-        # Normalize slashes for cross-platform
-        path = path.replace("/", os.sep)
-
-        # Expand ~ to home directory
-        if path.startswith("~"):
-            path = os.path.expanduser(path)
-
-        # Resolve to absolute path
-        if os.path.isabs(path):
-            resolved = os.path.abspath(path)
+    def __init__(
+        self,
+        home: str | None = None,
+        write_safe_root: str | list[str] | None = None,
+    ) -> None:
+        # ``home`` is the anchor for relative paths. Default to CWD so the
+        # unsandboxed local server keeps working without explicit config.
+        self.home = _norm(home) if home else os.path.abspath(os.getcwd())
+        # ``write_safe_root`` is normalized to a list. None means "no ceiling
+        # — only the deny list applies". A non-empty list means writes must
+        # land under at least one of the listed roots.
+        if write_safe_root is None:
+            self.write_safe_roots: list[str] = []
+        elif isinstance(write_safe_root, str):
+            self.write_safe_roots = [_norm(write_safe_root)]
         else:
-            resolved = os.path.abspath(os.path.join(base_root, path))
+            self.write_safe_roots = [_norm(r) for r in write_safe_root if r]
 
-        # Build allowed paths list
-        extra_paths = allowed_paths if allowed_paths is not None else get_allowed_paths()
-        all_allowed = [base_root] + extra_paths
+    # ── public ─────────────────────────────────────────────────────────
 
-        # Check against all allowed paths
-        for allowed_path in all_allowed:
-            try:
-                if os.path.commonpath([resolved, allowed_path]) == allowed_path:
-                    return resolved
-            except ValueError:
-                continue
+    def read_path(self, path: str) -> str:
+        """Resolve a read path; raise ValueError if denied."""
+        resolved = self._resolve(path)
+        self._check_read(resolved, path)
+        return resolved
 
-        # Block and remind
-        allowed_str = ", ".join(f"'{p}'" for p in all_allowed)
-        raise ValueError(f"Access denied: '{path}' is not accessible. Allowed paths: {allowed_str}")
+    def write_path(self, path: str) -> str:
+        """Resolve a write path; raise ValueError if denied."""
+        resolved = self._resolve(path)
+        self._check_write(resolved, path)
+        return resolved
 
-    return resolve
+    # ── internals ──────────────────────────────────────────────────────
 
+    def _resolve(self, path: str) -> str:
+        if not path:
+            raise ValueError("path cannot be empty")
+        # Normalize slashes for cross-platform robustness.
+        p = path.replace("/", os.sep) if os.sep != "/" else path
+        if p.startswith("~"):
+            p = os.path.expanduser(p)
+        if os.path.isabs(p):
+            return os.path.realpath(p)
+        return os.path.realpath(os.path.join(self.home, p))
 
-# ── Private helpers ───────────────────────────────────────────────────────
+    def _check_read(self, resolved: str, original: str) -> None:
+        if resolved in _READ_DENY_FILES:
+            raise ValueError(f"read denied: '{original}' is on the credential deny list")
+        for prefix in _READ_DENY_PREFIXES:
+            if _path_is_under(resolved, prefix):
+                raise ValueError(f"read denied: '{original}' is under {prefix} (credential directory)")
 
-
-def _default_resolve_path(p: str) -> str:
-    """Default path resolver — just resolves to absolute."""
-    return str(Path(p).resolve())
+    def _check_write(self, resolved: str, original: str) -> None:
+        if resolved in _WRITE_DENY_FILES:
+            raise ValueError(f"write denied: '{original}' is on the system/credential deny list")
+        for prefix in _WRITE_DENY_PREFIXES:
+            if _path_is_under(resolved, prefix):
+                raise ValueError(f"write denied: '{original}' is under {prefix} (system or credential directory)")
+        if self.write_safe_roots and not any(_path_is_under(resolved, r) for r in self.write_safe_roots):
+            roots = ", ".join(self.write_safe_roots)
+            raise ValueError(f"write denied: '{original}' is outside the configured write_safe_root(s) ({roots})")
 
 
 def _is_binary(filepath: str) -> bool:
@@ -610,27 +687,36 @@ def _compute_diff(old: str, new: str, path: str) -> str:
 def register_file_tools(
     mcp: FastMCP,
     *,
-    resolve_path: Callable[[str], str] | None = None,
-    resolve_path_write: Callable[[str], str] | None = None,
+    home: str | None = None,
+    write_safe_root: str | list[str] | None = None,
     before_write: Callable[[], None] | None = None,
-    project_root: str | None = None,
 ) -> None:
-    """Register the 5 shared file tools on an MCP server.
+    """Register the canonical file tools on an MCP server.
+
+    Path model (uniform across read_file, write_file, edit_file,
+    hashline_edit, search_files, apply_patch):
+
+      * Relative paths anchor to ``home``. ``home="my-folder"`` means
+        ``path="notes.md"`` resolves to ``<home>/notes.md``.
+      * Absolute paths are honored verbatim — no silent rebasing.
+      * ``~`` expands to the OS user home.
+      * A small deny list blocks writes to system + credential paths
+        and reads of credential files. System config (e.g. /etc/nginx/)
+        remains readable.
+      * If ``write_safe_root`` is set, writes outside that subtree are
+        denied. Reads are not restricted by it.
 
     Args:
         mcp: FastMCP instance to register tools on.
-        resolve_path: Path resolver for READ operations. Default:
-            resolve to absolute path. Raise ValueError to reject paths
-            (e.g. outside sandbox).
-        resolve_path_write: Path resolver for WRITE/EDIT operations.
-            Defaults to ``resolve_path`` when not provided. Split
-            resolvers let callers keep reads permissive (framework
-            skills, docs) while confining writes to an agent workspace.
-        before_write: Hook called before write/edit operations (e.g. git snapshot).
-        project_root: If set, search_files relativizes output paths to this root.
+        home: Anchor for relative paths. Defaults to the process CWD when
+            omitted, which is the right thing for the local unsandboxed
+            server. Hosted contexts should always pass this explicitly.
+        write_safe_root: Optional hard ceiling on writes. Either a single
+            path or a list of allowed write roots — a write must land
+            under at least one of them. Reads are unaffected.
+        before_write: Hook called before any write/edit (e.g. git snapshot).
     """
-    _resolve = resolve_path or _default_resolve_path
-    _resolve_write = resolve_path_write or _resolve
+    policy = _FilePolicy(home=home, write_safe_root=write_safe_root)
 
     @mcp.tool()
     def read_file(path: str, offset: int = 1, limit: int = 0, hashline: bool = False) -> str:
@@ -649,7 +735,10 @@ def register_file_tools(
             limit: Max lines to return, 0 = up to 2000 (default: 0).
             hashline: If True, return N:hhhh|content anchors (default: False).
         """
-        resolved = _resolve(path)
+        try:
+            resolved = policy.read_path(path)
+        except ValueError as e:
+            return f"Error: {e}"
 
         if os.path.isdir(resolved):
             entries = []
@@ -727,10 +816,15 @@ def register_file_tools(
         Automatically creates parent directories.
 
         Args:
-            path: Absolute file path to write.
+            path: Relative paths anchor to the agent's home directory;
+                absolute paths are used verbatim. System and credential
+                paths are denied.
             content: Complete file content to write.
         """
-        resolved = _resolve_write(path)
+        try:
+            resolved = policy.write_path(path)
+        except ValueError as e:
+            return f"Error: {e}"
         resolved_path = Path(resolved)
 
         # Stale-edit guard: an existing file must have been read recently
@@ -794,12 +888,16 @@ def register_file_tools(
         indentation-flexible, and trimmed-boundary matching.
 
         Args:
-            path: Absolute file path to edit.
+            path: Relative paths anchor to home; absolute paths are used
+                verbatim. System and credential paths are denied.
             old_text: Text to find (fuzzy matching applied if exact fails).
             new_text: Replacement text.
             replace_all: Replace all occurrences (default: first only).
         """
-        resolved = _resolve_write(path)
+        try:
+            resolved = policy.write_path(path)
+        except ValueError as e:
+            return f"Error: {e}"
         if not os.path.isfile(resolved):
             return f"Error: File not found: {path}"
 
@@ -886,6 +984,79 @@ def register_file_tools(
             return f"Error editing file: {e}"
 
     @mcp.tool()
+    def apply_patch(path: str, patch_text: str) -> str:
+        """Apply a diff-match-patch text to a file.
+
+        Use this for batched, context-aware edits where you already have a
+        ``diff_match_patch``-format patch in hand. For single string edits
+        prefer ``edit_file``; for line-anchored multi-edit batches prefer
+        ``hashline_edit``.
+
+        Args:
+            path: Relative paths anchor to home; absolute paths are used
+                verbatim. System and credential paths are denied.
+            patch_text: The diff-match-patch text produced by
+                ``dmp.patch_toText(dmp.patch_make(...))``.
+        """
+        try:
+            import diff_match_patch as dmp_module
+        except ImportError:
+            return "Error: diff_match_patch is not installed"
+
+        try:
+            resolved = policy.write_path(path)
+        except ValueError as e:
+            return f"Error: {e}"
+        if not os.path.isfile(resolved):
+            return f"Error: File not found: {path}"
+
+        # Stale-edit guard mirrors edit_file/hashline_edit so the model
+        # can't patch over content it has never seen.
+        _fresh = check_fresh(None, resolved)
+        if _fresh.status is Freshness.UNREAD:
+            return (
+                f"Error: Refusing to patch '{path}': call read_file('{path}') "
+                "first so the harness can track its state before you patch it."
+            )
+        if _fresh.status is Freshness.STALE:
+            return f"Error: Refusing to patch '{path}': {_fresh.detail}. Re-read the file before patching."
+
+        try:
+            with open(resolved, encoding="utf-8") as f:
+                content = f.read()
+            dmp = dmp_module.diff_match_patch()
+            patches = dmp.patch_fromText(patch_text)
+            if not patches:
+                return "Error: patch_text produced no patches"
+
+            new_content, results = dmp.patch_apply(patches, content)
+            applied = sum(1 for r in results if r)
+            failed = len(results) - applied
+
+            if failed:
+                return f"Error: applied {applied}/{len(results)} patches; {failed} failed. File not modified."
+
+            if before_write:
+                try:
+                    before_write()
+                except Exception:
+                    pass
+
+            with open(resolved, "w", encoding="utf-8") as f:
+                f.write(new_content)
+                f.flush()
+                os.fsync(f.fileno())
+
+            try:
+                record_read(None, resolved, content_bytes=new_content.encode("utf-8"))
+            except Exception:
+                pass
+
+            return f"Applied {applied} patch(es) to {path}"
+        except Exception as e:
+            return f"Error applying patch: {e}"
+
+    @mcp.tool()
     def search_files(
         pattern: str,
         target: str = "content",
@@ -956,15 +1127,19 @@ def register_file_tools(
             )
 
         try:
-            resolved = _resolve(path)
-        except Exception as e:
+            resolved = policy.read_path(path)
+        except ValueError as e:
             return f"Error: {e}"
+
+        # Output paths are relativized against home for readability —
+        # e.g. ``src/foo.py`` instead of ``/Users/aden/<home>/src/foo.py``.
+        display_root = policy.home
 
         if target == "files":
             result = _do_search_files_target(
                 pattern=pattern,
                 resolved=resolved,
-                display_root=project_root or resolved,
+                display_root=display_root,
                 limit=limit,
                 offset=offset,
             )
@@ -975,7 +1150,7 @@ def register_file_tools(
             result = _do_search_content_target(
                 pattern=pattern,
                 resolved=resolved,
-                project_root=project_root,
+                project_root=display_root,
                 file_glob=file_glob,
                 limit=limit,
                 offset=offset,
@@ -1035,7 +1210,10 @@ def register_file_tools(
             return "Error: Too many edits in one call (max 100). Split into multiple calls."
 
         # 2. Read file
-        resolved = _resolve_write(path)
+        try:
+            resolved = policy.write_path(path)
+        except ValueError as e:
+            return f"Error: {e}"
         if not os.path.isfile(resolved):
             return f"Error: File not found: {path}"
 

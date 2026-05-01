@@ -110,7 +110,7 @@ MCP tools are also available in Cursor. To enable:
 
 **Claude Code:**
 ```
-Use the coder-tools initialize_and_build_agent tool to scaffold a new agent
+Use the files-tools initialize_and_build_agent tool to scaffold a new agent
 ```
 
 **Codex CLI:**
@@ -261,7 +261,7 @@ hive/
 │   └── pyproject.toml
 │
 ├── exports/                 # Agent packages (user-created, gitignored)
-│   └── your_agent_name/     # Created via coder-tools workflow
+│   └── your_agent_name/     # Created via files-tools workflow
 │
 └── examples/
     └── templates/           # Pre-built template agents
@@ -313,9 +313,9 @@ The `.mcp.json` at project root configures MCP servers to run through `uv run` i
 ```json
 {
   "mcpServers": {
-    "coder-tools": {
+    "files-tools": {
       "command": "uv",
-      "args": ["run", "coder_tools_server.py", "--stdio"],
+      "args": ["run", "files_server.py", "--stdio"],
       "cwd": "tools"
     },
     "tools": {
@@ -353,7 +353,7 @@ This design allows agents in `exports/` to be:
 ### 2. Build Agent (Claude Code)
 
 ```
-Use the coder-tools initialize_and_build_agent tool
+Use the files-tools initialize_and_build_agent tool
 Enter goal: "Build an agent that processes customer support tickets"
 ```
 

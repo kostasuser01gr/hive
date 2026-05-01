@@ -159,7 +159,7 @@ async def test_get_tools_default_allows_everything_for_unknown_queen(queen_dir, 
 
     manager = _FakeManager()
     manager._mcp_tool_catalog = {
-        "coder-tools": [
+        "files-tools": [
             {"name": "read_file", "description": "read", "input_schema": {}},
             {"name": "write_file", "description": "write", "input_schema": {}},
         ],
@@ -175,8 +175,8 @@ async def test_get_tools_default_allows_everything_for_unknown_queen(queen_dir, 
     assert body["is_role_default"] is True  # no sidecar → default-allow
     assert body["stale"] is False
     servers = {s["name"]: s for s in body["mcp_servers"]}
-    assert set(servers) == {"coder-tools"}
-    for tool in servers["coder-tools"]["tools"]:
+    assert set(servers) == {"files-tools"}
+    for tool in servers["files-tools"]["tools"]:
         assert tool["enabled"] is True
 
 
@@ -190,7 +190,7 @@ async def test_get_tools_applies_role_default(queen_dir, monkeypatch):
     # Seed a catalog covering tools the role default references so the
     # response reflects what the queen would actually see on boot.
     manager._mcp_tool_catalog = {
-        "coder-tools": [
+        "files-tools": [
             {"name": "read_file", "description": "", "input_schema": {}},
             {"name": "port_scan", "description": "", "input_schema": {}},  # security
             {"name": "excel_read", "description": "", "input_schema": {}},  # data
@@ -245,7 +245,7 @@ async def test_patch_persists_and_validates(queen_dir, monkeypatch):
 
     manager = _FakeManager()
     manager._mcp_tool_catalog = {
-        "coder-tools": [
+        "files-tools": [
             {"name": "read_file", "description": "", "input_schema": {}},
             {"name": "write_file", "description": "", "input_schema": {}},
         ]
@@ -318,7 +318,7 @@ async def test_patch_hot_reloads_live_session(queen_dir, monkeypatch):
 
     tools_by_name = {"read_file": _tool("read_file"), "write_file": _tool("write_file")}
     registry = _FakeRegistry(
-        server_map={"coder-tools": {"read_file", "write_file"}},
+        server_map={"files-tools": {"read_file", "write_file"}},
         tools_by_name=tools_by_name,
     )
     # Patch get_tools to return real Tool objects for name/description plumbing.
@@ -375,7 +375,7 @@ async def test_delete_restores_role_default(queen_dir, monkeypatch):
 
     manager = _FakeManager()
     manager._mcp_tool_catalog = {
-        "coder-tools": [
+        "files-tools": [
             {"name": "read_file", "description": "", "input_schema": {}},
             {"name": "port_scan", "description": "", "input_schema": {}},
         ],

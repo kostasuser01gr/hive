@@ -331,10 +331,10 @@ class Orchestrator:
 
         # Strip tool names that aren't registered in this runtime instead of
         # hard-failing. The worker is forked from the queen's tool snapshot
-        # which may include MCP tools the worker's runtime doesn't load (e.g.
-        # coder-tools agent-management tools). Blocking the worker on missing
-        # tools leaves the queen stranded mid-task; stripping + warning lets
-        # the worker proceed with what it does have.
+        # which may include MCP tools the worker's runtime doesn't load.
+        # Blocking the worker on missing tools leaves the queen stranded
+        # mid-task; stripping + warning lets the worker proceed with what
+        # it does have.
         for node in graph.nodes:
             if node.id not in reachable:
                 continue
@@ -683,8 +683,8 @@ class Orchestrator:
         # Set per-execution data_dir and agent_id so data tools and
         # spillover files share the same session-scoped directory, and
         # so MCP tools whose server-side schemas mark agent_id as a
-        # required field (search_files, hashline_edit, replace_file_content,
-        # execute_command_tool, …) get a valid value injected even on
+        # required field (execute_command_tool's bash_*, etc.) get a valid
+        # value injected even on
         # registry instances where agent_loader.setup() didn't populate
         # the session_context. Without this, FastMCP rejects those
         # calls with "agent_id is a required property".

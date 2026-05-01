@@ -462,7 +462,7 @@ class ToolRegistry:
             else:
                 resolved_cwd = (base_dir / cwd).resolve()
 
-        # Find .py script in args (e.g. coder_tools_server.py, files_server.py)
+        # Find .py script in args (e.g. files_server.py)
         script_name = None
         for i, arg in enumerate(args):
             if isinstance(arg, str) and arg.endswith(".py"):
@@ -501,26 +501,6 @@ class ToolRegistry:
             # No .py script (e.g. GCU uses -m gcu.server); just set cwd
             config["cwd"] = str(resolved_cwd)
             return config
-
-        # For coder_tools_server, inject --project-root so reads land
-        # in the expected workspace (hive repo, for framework skills
-        # and docs), and inject --write-root so writes land under
-        # ~/.hive/workspace/ instead of polluting the git checkout
-        # with queen-authored skills, ledgers, and scripts. Without
-        # the split, every ``write_file`` call from the queen landed
-        # in the hive repo root.
-        if script_name and "coder_tools" in script_name:
-            project_root = str(resolved_cwd.parent.resolve())
-            args = list(args)
-            if "--project-root" not in args:
-                args.extend(["--project-root", project_root])
-            if "--write-root" not in args:
-                from framework.config import HIVE_HOME
-
-                _write_root = HIVE_HOME / "workspace"
-                _write_root.mkdir(parents=True, exist_ok=True)
-                args.extend(["--write-root", str(_write_root)])
-            config["args"] = args
 
         if os.name == "nt":
             # Windows: cwd=None avoids WinError 267; use absolute script path
