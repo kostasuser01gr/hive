@@ -33,7 +33,7 @@ _BUNDLED_DIRS: tuple[Path, ...] = (
 # (tool-name prefix, skill directory name, display name)
 _TOOL_GATED_SKILLS: list[tuple[str, str, str]] = [
     ("browser_", "browser-automation", "hive.browser-automation"),
-    ("shell_", "shell-tools-foundations", "hive.shell-tools-foundations"),
+    ("terminal_", "terminal-tools-foundations", "hive.terminal-tools-foundations"),
 ]
 
 _BODY_CACHE: dict[str, str] = {}

@@ -51,9 +51,9 @@ _DEFAULT_LOCAL_SERVERS: dict[str, dict[str, Any]] = {
         "description": "File I/O: read, write, edit, search, list, run commands",
         "args": ["run", "python", "files_server.py", "--stdio"],
     },
-    "shell-tools": {
-        "description": "Terminal/shell capabilities: process exec, background jobs, PTY shells, fs search. Bash-only on POSIX.",
-        "args": ["run", "python", "shell_tools_server.py", "--stdio"],
+    "terminal-tools": {
+        "description": "Terminal capabilities: process exec, background jobs, PTY sessions, fs search. Bash-only on POSIX.",
+        "args": ["run", "python", "terminal_tools_server.py", "--stdio"],
     },
 }
 
@@ -62,6 +62,10 @@ _DEFAULT_LOCAL_SERVERS: dict[str, dict[str, Any]] = {
 # name so the active agents (queen, credential_tester) can find their tools.
 _STALE_DEFAULT_ALIASES: dict[str, str] = {
     "hive_tools": "hive-tools",
+    # 2026-04-30: shell-tools renamed to terminal-tools. Drop the stale name
+    # on next ensure_defaults() so the queen's allowlist (which now includes
+    # @server:terminal-tools) actually finds a server with the new name.
+    "terminal-tools": "shell-tools",
 }
 
 
