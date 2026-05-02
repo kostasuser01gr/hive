@@ -13,6 +13,9 @@ import {
 } from "lucide-react";
 import WorkerRunBubble from "@/components/WorkerRunBubble";
 import type { WorkerRunGroup } from "@/components/WorkerRunBubble";
+import ChartToolDetail, {
+  type ChartToolEntry,
+} from "@/components/charts/ChartToolDetail";
 
 export interface ImageContent {
   type: "image_url";
@@ -205,7 +208,7 @@ export function toolHex(name: string): string {
 }
 
 export function ToolActivityRow({ content }: { content: string }) {
-  let tools: { name: string; done: boolean }[] = [];
+  let tools: ChartToolEntry[] = [];
   try {
     const parsed = JSON.parse(content);
     tools = parsed.tools || [];
@@ -239,52 +242,65 @@ export function ToolActivityRow({ content }: { content: string }) {
     if (counts.done > 0) donePills.push({ name, count: counts.done });
   }
 
+  // Per-call chart embeds: chart_render's result envelope carries the
+  // spec back, so the chat renders the same chart the server
+  // rasterized to PNG. Other tools stay pill-only by design.
+  const chartDetails = tools.filter((t) => t.name.startsWith("chart_"));
+
   return (
-    <div className="flex gap-3 pl-10">
-      <div className="flex flex-wrap items-center gap-1.5">
-        {runningPills.map((p) => {
-          const hex = toolHex(p.name);
-          return (
-            <span
-              key={`run-${p.name}`}
-              className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full"
-              style={{
-                color: hex,
-                backgroundColor: `${hex}18`,
-                border: `1px solid ${hex}35`,
-              }}
-            >
-              <Loader2 className="w-2.5 h-2.5 animate-spin" />
-              {p.name}
-              {p.count > 1 && (
-                <span className="text-[10px] font-medium opacity-70">
-                  ×{p.count}
-                </span>
-              )}
-            </span>
-          );
-        })}
-        {donePills.map((p) => {
-          const hex = toolHex(p.name);
-          return (
-            <span
-              key={`done-${p.name}`}
-              className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full"
-              style={{
-                color: hex,
-                backgroundColor: `${hex}18`,
-                border: `1px solid ${hex}35`,
-              }}
-            >
-              <Check className="w-2.5 h-2.5" />
-              {p.name}
-              {p.count > 1 && (
-                <span className="text-[10px] opacity-80">×{p.count}</span>
-              )}
-            </span>
-          );
-        })}
+    <div className="flex flex-col gap-0.5">
+      <div className="flex gap-3 pl-10">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {runningPills.map((p) => {
+            const hex = toolHex(p.name);
+            return (
+              <span
+                key={`run-${p.name}`}
+                className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full"
+                style={{
+                  color: hex,
+                  backgroundColor: `${hex}18`,
+                  border: `1px solid ${hex}35`,
+                }}
+              >
+                <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                {p.name}
+                {p.count > 1 && (
+                  <span className="text-[10px] font-medium opacity-70">
+                    ×{p.count}
+                  </span>
+                )}
+              </span>
+            );
+          })}
+          {donePills.map((p) => {
+            const hex = toolHex(p.name);
+            return (
+              <span
+                key={`done-${p.name}`}
+                className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full"
+                style={{
+                  color: hex,
+                  backgroundColor: `${hex}18`,
+                  border: `1px solid ${hex}35`,
+                }}
+              >
+                <Check className="w-2.5 h-2.5" />
+                {p.name}
+                {p.count > 1 && (
+                  <span className="text-[10px] opacity-80">×{p.count}</span>
+                )}
+              </span>
+            );
+          })}
+        </div>
       </div>
+      {chartDetails.map((t, idx) => (
+        <ChartToolDetail
+          key={t.callKey ?? `${t.name}-${idx}`}
+          entry={t}
+        />
+      ))}
     </div>
   );
 }

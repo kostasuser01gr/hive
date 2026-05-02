@@ -295,11 +295,39 @@ export function sseEventToChatMessage(
  * deferred `tool_call_completed` events can find the exact pill they belong
  * to after the turn counter moves on.
  */
+/**
+ * For chart_* tools we retain the args (from tool_call_started) and
+ * result envelope (from tool_call_completed) so the chat panel can
+ * render the live chart inline from the same spec the runtime
+ * rasterized to PNG. Other tools omit these fields to keep the
+ * tool_status content payload small (catalogs are pill-only).
+ */
+type ToolEntry = {
+  name: string;
+  done: boolean;
+  /** opaque per-call id surfaced to the UI; used to key React rows */
+  callKey?: string;
+  /** present only for tools whose name matches shouldRetainDetail */
+  args?: unknown;
+  result?: unknown;
+  isError?: boolean;
+};
+
 type ToolRowState = {
   streamId: string;
   executionId: string;
-  tools: Record<string, { name: string; done: boolean }>;
+  tools: Record<string, ToolEntry>;
 };
+
+/**
+ * Names whose detail (args + result envelope) we surface in the chat.
+ * Other tools stay pill-only — keeping their args/results out of the
+ * message content avoids ballooning the chat history with tool
+ * catalogs, file blobs, etc.
+ */
+function shouldRetainDetail(toolName: string): boolean {
+  return toolName.startsWith("chart_");
+}
 
 export interface ReplayState {
   turnCounters: Record<string, number>;
@@ -349,10 +377,20 @@ function toolLookupKey(
 }
 
 function toolRowContent(row: ToolRowState): string {
-  const tools = Object.values(row.tools).map((t) => ({
-    name: t.name,
-    done: t.done,
-  }));
+  const tools = Object.values(row.tools).map((t) => {
+    const out: ToolEntry = { name: t.name, done: t.done };
+    // Carry callKey + retained fields only for tools whose detail the
+    // UI mounts (chart_*). Pill-only tools stay terse so the
+    // tool_status payload doesn't grow with every catalog/file_ops
+    // call and existing snapshot tests stay valid.
+    if (shouldRetainDetail(t.name)) {
+      if (t.callKey !== undefined) out.callKey = t.callKey;
+      if (t.args !== undefined) out.args = t.args;
+      if (t.result !== undefined) out.result = t.result;
+      if (t.isError !== undefined) out.isError = t.isError;
+    }
+    return out;
+  });
   const allDone = tools.length > 0 && tools.every((t) => t.done);
   return JSON.stringify({ tools, allDone });
 }
@@ -417,10 +455,19 @@ export function replayEvent(
           tools: {},
         });
       const toolKey = toolUseId || `anonymous-${Object.keys(row.tools).length}`;
-      row.tools[toolKey] = {
+      const entry: ToolEntry = {
         name: toolName,
         done: false,
+        callKey: toolKey,
       };
+      // Capture args at start for retained-detail tools so the chat
+      // can show what the agent rendered. Other tools' arguments are
+      // intentionally dropped to keep the tool_status JSON small.
+      if (shouldRetainDetail(toolName)) {
+        const toolInput = event.data?.tool_input;
+        if (toolInput !== undefined) entry.args = toolInput;
+      }
+      row.tools[toolKey] = entry;
       if (toolUseId) {
         state.toolUseToPill[toolLookupKey(streamId, event.execution_id, toolUseId)] = {
           msgId: pillId,
@@ -453,10 +500,38 @@ export function replayEvent(
       if (!tracked) break;
       const row = state.toolRows[tracked.msgId];
       if (!row) break;
-      row.tools[tracked.toolKey] = {
-        name: row.tools[tracked.toolKey]?.name || tracked.name,
+      const prior = row.tools[tracked.toolKey];
+      const completedName = prior?.name || tracked.name;
+      const completed: ToolEntry = {
+        name: completedName,
         done: true,
+        callKey: tracked.toolKey,
       };
+      // Preserve any args captured at start; capture the result
+      // envelope for retained-detail tools (chart_* needs spec/file_url
+      // to mount the live chart).
+      if (shouldRetainDetail(completedName)) {
+        if (prior?.args !== undefined) completed.args = prior.args;
+        const rawResult = event.data?.result;
+        if (rawResult !== undefined) {
+          // The framework serializes envelopes as JSON strings. Try to
+          // parse so the renderer can pick fields cheaply; fall back to
+          // the raw value when parsing fails (already-an-object or
+          // non-JSON string).
+          if (typeof rawResult === "string") {
+            try {
+              completed.result = JSON.parse(rawResult);
+            } catch {
+              completed.result = rawResult;
+            }
+          } else {
+            completed.result = rawResult;
+          }
+        }
+        const isErr = event.data?.is_error;
+        if (typeof isErr === "boolean") completed.isError = isErr;
+      }
+      row.tools[tracked.toolKey] = completed;
       out.push({
         id: tracked.msgId,
         agent: effectiveName || event.node_id || "Agent",
