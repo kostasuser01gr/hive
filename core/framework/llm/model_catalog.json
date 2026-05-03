@@ -326,7 +326,7 @@
           "supports_vision": false
         },
         {
-          "id": "kimi-2.5",
+          "id": "kimi-k2.5",
           "label": "Kimi 2.5 - Via Hive",
           "recommended": false,
           "max_tokens": 32768,
@@ -489,8 +489,8 @@
           "recommended": true
         },
         {
-          "id": "kimi-2.5",
-          "label": "kimi-2.5",
+          "id": "kimi-k2.5",
+          "label": "kimi-k2.5",
           "recommended": false
         },
         {

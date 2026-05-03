@@ -407,7 +407,7 @@ Aden Hive supports **100+ LLM providers** via LiteLLM, giving users maximum flex
 | **Anthropic** | Claude 3.5 Sonnet, Haiku, Opus | Default provider, best for reasoning |
 | **OpenAI** | GPT-4, GPT-4 Turbo, GPT-4o | Function calling, vision |
 | **OpenRouter** | Any OpenRouter catalog model | Uses `OPENROUTER_API_KEY` and `https://openrouter.ai/api/v1` |
-| **Hive LLM** | `queen`, `kimi-2.5`, `GLM-5` | Uses `HIVE_API_KEY` and the Hive-managed endpoint |
+| **Hive LLM** | `queen`, `kimi-k2.5`, `GLM-5` | Uses `HIVE_API_KEY` and the Hive-managed endpoint |
 | **Google** | Gemini 1.5 Pro, Flash | Long context windows |
 | **DeepSeek** | DeepSeek V3 | Cost-effective, strong reasoning |
 | **Mistral** | Mistral Large, Medium, Small | Open weights, EU hosting |
@@ -435,7 +435,7 @@ DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 
 **Provider-Specific Notes**
 - **OpenRouter**: store `provider` as `openrouter`, use the raw OpenRouter model ID in `model` (for example `x-ai/grok-4.20-beta`), and use `OPENROUTER_API_KEY`
-- **Hive LLM**: store `provider` as `hive`, use Hive model names such as `queen`, `kimi-2.5`, or `GLM-5`, and use `HIVE_API_KEY`
+- **Hive LLM**: store `provider` as `hive`, use Hive model names such as `queen`, `kimi-k2.5`, or `GLM-5`, and use `HIVE_API_KEY`
 
 **For Development**
 - Use cheaper/faster models (Haiku, GPT-4o-mini)
