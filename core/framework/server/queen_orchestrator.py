@@ -359,7 +359,6 @@ async def create_queen(
         queen_goal,
         queen_loop_config as _base_loop_config,
     )
-    from framework.config import get_max_tokens as _get_max_tokens
     from framework.agents.queen.nodes import (
         _QUEEN_INCUBATING_TOOLS,
         _QUEEN_INDEPENDENT_TOOLS,
@@ -378,6 +377,7 @@ async def create_queen(
         _queen_tools_working,
         finalize_queen_prompt,
     )
+    from framework.config import get_max_tokens as _get_max_tokens
     from framework.host.event_bus import AgentEvent, EventType
     from framework.llm.capabilities import supports_image_tool_results
     from framework.loader.mcp_registry import MCPRegistry
