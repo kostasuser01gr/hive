@@ -13,4 +13,13 @@ constraint-dependencies = [
     "authlib>=1.6.0",
     "python-dotenv>=1.1.0",
     "litellm>=1.84.0",
+    "pypdf>=5.7.0",
+    "aiohttp>=3.12.0",
+    "fastmcp>=2.8.0",
+    "cryptography>=45.0.3",
+    "PyJWT>=2.10.1",
+    "lupa>=2.4",
+    "pytest>=8.4.0",
+    "Pygments>=2.19.2",
+    "requests>=2.32.4",
 ]
