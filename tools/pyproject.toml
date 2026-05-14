@@ -25,10 +25,10 @@ dependencies = [
     "jsonpath-ng>=1.6.0",
     "fastmcp>=2.0.0",
     "diff-match-patch>=20230430",
-    "python-dotenv>=1.0.0",
+    "python-dotenv>=1.1.0",
     "playwright>=1.40.0",
     "playwright-stealth>=2.0.0",
-    "litellm==1.83.4",
+    "litellm>=1.84.0",
     "dnspython>=2.4.0",
     "resend>=2.0.0",
     "asana>=3.2.0",
@@ -36,7 +36,7 @@ dependencies = [
     "framework",
     "stripe>=14.3.0",
     "arxiv>=2.1.0",
-    "requests>=2.31.0",
+    "requests>=2.32.0",
     "websockets>=12.0",
     "psycopg2-binary>=2.9.0",
 ]
@@ -50,11 +50,11 @@ sandbox = [
     "RestrictedPython>=7.0",
 ]
 browser = [
-    "pillow>=10.0.0",
+    "pillow>=11.2.1",
 ]
 ocr = [
     "pytesseract>=0.3.10",
-    "pillow>=10.0.0",
+    "pillow>=11.2.1",
 ]
 excel = [
     "openpyxl>=3.1.0",
@@ -72,7 +72,7 @@ databricks = [
 all = [
     "RestrictedPython>=7.0",
     "pytesseract>=0.3.10",
-    "pillow>=10.0.0",
+    "pillow>=11.2.1",
     "duckdb>=1.0.0",
     "openpyxl>=3.1.0",
     "google-cloud-bigquery>=3.0.0",

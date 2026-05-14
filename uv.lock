@@ -18,6 +18,14 @@ members = [
     "framework",
     "tools",
 ]
+constraints = [
+    { name = "authlib", specifier = ">=1.6.0" },
+    { name = "litellm", specifier = ">=1.84.0" },
+    { name = "pillow", specifier = ">=11.2.1" },
+    { name = "python-dotenv", specifier = ">=1.1.0" },
+    { name = "python-multipart", specifier = ">=0.0.20" },
+    { name = "urllib3", specifier = ">=2.4.0" },
+]
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -755,7 +763,7 @@ requires-dist = [
     { name = "croniter", specifier = ">=1.4.0" },
     { name = "fastmcp", specifier = ">=2.0.0" },
     { name = "httpx", specifier = ">=0.27.0" },
-    { name = "litellm", specifier = "==1.83.4" },
+    { name = "litellm", specifier = ">=1.84.0" },
     { name = "mcp", specifier = ">=1.0.0" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pytest", marker = "extra == 'testing'", specifier = ">=8.0" },
@@ -1406,7 +1414,7 @@ wheels = [
 
 [[package]]
 name = "litellm"
-version = "1.83.4"
+version = "1.84.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1422,9 +1430,9 @@ dependencies = [
     { name = "tiktoken" },
     { name = "tokenizers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/03/c4/30469c06ae7437a4406bc11e3c433cfd380a6771068cca15ea918dcd158f/litellm-1.83.4.tar.gz", hash = "sha256:6458d2030a41229460b321adee00517a91dbd8e63213cc953d355cb41d16f2d4", size = 17733899, upload-time = "2026-04-07T04:33:47.445Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/dd/e9/8941b7e72a187000561d932c0f2f2ed2b0fd080dfc33ba6e05961d45ca7d/litellm-1.84.0.tar.gz", hash = "sha256:b8ad0cbea11a5941b18d5af973017a340abd3d3ab41cb86e5401b970626d71a6", size = 15103206, upload-time = "2026-05-14T05:45:53.017Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b8/bd/df19d3f8f6654535ee343a341fd921f81c411abf601a53e3eaef58129b02/litellm-1.83.4-py3-none-any.whl", hash = "sha256:17d7b4d48d47aca988ea4f762ddda5e7bd72cda3270192b22813d0330869d7b4", size = 16015555, upload-time = "2026-04-07T04:33:44.268Z" },
+    { url = "https://files.pythonhosted.org/packages/01/a6/77fa1bbf5e42eb596b06318b3f7e6af5d0f44028046d1d598c6a595d028f/litellm-1.84.0-py3-none-any.whl", hash = "sha256:2a58d6041e6aa27d1a28dc8d8828ab500fef1a00ef74ca65e60899035010c2f2", size = 16735062, upload-time = "2026-05-14T05:45:49.927Z" },
 ]
 
 [[package]]
@@ -2438,11 +2446,11 @@ wheels = [
 
 [[package]]
 name = "python-dotenv"
-version = "1.0.1"
+version = "1.2.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/bc/57/e84d88dfe0aec03b7a2d4327012c1627ab5f03652216c63d49846d7a6c58/python-dotenv-1.0.1.tar.gz", hash = "sha256:e324ee90a023d808f1959c46bcbc04446a10ced277783dc6ee09987c37ec10ca", size = 39115, upload-time = "2024-01-23T06:33:00.505Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/82/ed/0301aeeac3e5353ef3d94b6ec08bbcabd04a72018415dcb29e588514bba8/python_dotenv-1.2.2.tar.gz", hash = "sha256:2c371a91fbd7ba082c2c1dc1f8bf89ca22564a087c2c287cd9b662adde799cf3", size = 50135, upload-time = "2026-03-01T16:00:26.196Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6a/3e/b68c118422ec867fa7ab88444e1274aa40681c606d59ac27de5a5588f082/python_dotenv-1.0.1-py3-none-any.whl", hash = "sha256:f7b63ef50f1b690dddf550d03497b66d609393b40b564ed0d674909a68ebf16a", size = 19863, upload-time = "2024-01-23T06:32:58.246Z" },
+    { url = "https://files.pythonhosted.org/packages/0b/d7/1959b9648791274998a9c3526f6d0ec8fd2233e4d4acce81bbae76b44b2a/python_dotenv-1.2.2-py3-none-any.whl", hash = "sha256:1d8214789a24de455a8b8bd8ae6fe3c6b69a5e3d64aa8a8e5d68e694bbcb285a", size = 22101, upload-time = "2026-03-01T16:00:25.09Z" },
 ]
 
 [[package]]
@@ -3106,13 +3114,13 @@ requires-dist = [
     { name = "google-cloud-bigquery", marker = "extra == 'bigquery'", specifier = ">=3.0.0" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "jsonpath-ng", specifier = ">=1.6.0" },
-    { name = "litellm", specifier = "==1.83.4" },
+    { name = "litellm", specifier = ">=1.84.0" },
     { name = "openpyxl", marker = "extra == 'all'", specifier = ">=3.1.0" },
     { name = "openpyxl", marker = "extra == 'excel'", specifier = ">=3.1.0" },
     { name = "pandas", specifier = ">=2.0.0" },
-    { name = "pillow", marker = "extra == 'all'", specifier = ">=10.0.0" },
-    { name = "pillow", marker = "extra == 'browser'", specifier = ">=10.0.0" },
-    { name = "pillow", marker = "extra == 'ocr'", specifier = ">=10.0.0" },
+    { name = "pillow", marker = "extra == 'all'", specifier = ">=11.2.1" },
+    { name = "pillow", marker = "extra == 'browser'", specifier = ">=11.2.1" },
+    { name = "pillow", marker = "extra == 'ocr'", specifier = ">=11.2.1" },
     { name = "playwright", specifier = ">=1.40.0" },
     { name = "playwright-stealth", specifier = ">=2.0.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.0" },
@@ -3122,8 +3130,8 @@ requires-dist = [
     { name = "pytesseract", marker = "extra == 'ocr'", specifier = ">=0.3.10" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21.0" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "requests", specifier = ">=2.31.0" },
+    { name = "python-dotenv", specifier = ">=1.1.0" },
+    { name = "requests", specifier = ">=2.32.0" },
     { name = "resend", specifier = ">=2.0.0" },
     { name = "restrictedpython", marker = "extra == 'all'", specifier = ">=7.0" },
     { name = "restrictedpython", marker = "extra == 'sandbox'", specifier = ">=7.0" },
