@@ -50,11 +50,11 @@ sandbox = [
     "RestrictedPython>=7.0",
 ]
 browser = [
-    "pillow>=11.2.1",
+    "pillow>=12.3.0",
 ]
 ocr = [
     "pytesseract>=0.3.10",
-    "pillow>=11.2.1",
+    "pillow>=12.3.0",
 ]
 excel = [
     "openpyxl>=3.1.0",
@@ -72,7 +72,7 @@ databricks = [
 all = [
     "RestrictedPython>=7.0",
     "pytesseract>=0.3.10",
-    "pillow>=11.2.1",
+    "pillow>=12.3.0",
     "duckdb>=1.0.0",
     "openpyxl>=3.1.0",
     "google-cloud-bigquery>=3.0.0",
